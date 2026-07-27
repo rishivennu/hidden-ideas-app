@@ -27,7 +27,7 @@ export default function IdeaCard({ idea, index = 0 }: { idea: Idea; index?: numb
           {/* colored header with illustration sticker */}
           <div className="relative h-28 flex items-center px-5 overflow-hidden border-b-2 border-ink" style={{ backgroundColor: style.bg }}>
             <span className="chip bg-white text-xs !py-0.5">{idea.category}</span>
-            <img loading="lazy" decoding="async" src={style.art} alt="" aria-hidden="true" className="absolute -right-2 -bottom-4 h-32 w-auto object-contain drop-shadow-[2px_2px_0_rgba(20,20,20,0.2)] group-hover:scale-105 transition-transform" />
+            <img src={style.art} alt="" aria-hidden="true" className="absolute -right-2 -bottom-4 h-32 w-auto object-contain drop-shadow-[2px_2px_0_rgba(20,20,20,0.2)] group-hover:scale-105 transition-transform" />
           </div>
 
           <div className="p-5 flex flex-col flex-1">
