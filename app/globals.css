@@ -1,0 +1,189 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Design Tokens ─────────────────────────────── */
+:root {
+  --bg-100: #FFFFFF;
+  --bg-200: #F7F7F8;
+  --accent: #0A84FF;
+  --accent-hover: #0070E0;
+  --accent-muted: #CCE4FF;
+  --muted: #6B6B6B;
+  --glass: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.8);
+
+  /* Spacing scale (8-base) */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-6: 48px;
+  --space-8: 64px;
+
+  /* Motion */
+  --ease-in: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-micro: 120ms;
+  --dur-small: 240ms;
+  --dur-medium: 420ms;
+  --dur-large: 680ms;
+}
+
+/* ── Base ──────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  background-color: var(--bg-100);
+  color: #1a1a1a;
+  line-height: 1.5;
+}
+
+/* Remove default focus, restore custom */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── Component Layer ───────────────────────────────── */
+@layer components {
+  /* Glass card */
+  .glass-card {
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-white transition-all;
+    background-color: var(--accent);
+    min-height: 44px; /* WCAG touch target */
+    cursor: pointer;
+  }
+  .btn-primary:hover {
+    background-color: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(10, 132, 255, 0.35);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+    transition-duration: var(--dur-micro);
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold transition-all;
+    background-color: var(--bg-200);
+    color: #1a1a1a;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    min-height: 44px;
+    cursor: pointer;
+  }
+  .btn-secondary:hover {
+    background-color: var(--bg-300);
+    transform: translateY(-1px);
+  }
+
+  /* Reel card */
+  .reel-card {
+    @apply relative overflow-hidden cursor-pointer;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    transition: transform var(--dur-small) var(--ease-out),
+                box-shadow var(--dur-small) var(--ease-out);
+  }
+  .reel-card:hover {
+    transform: scale(1.03);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 24px rgba(10, 132, 255, 0.12);
+  }
+
+  /* Roadmap card */
+  .roadmap-card {
+    @apply p-5 rounded-20 border transition-all cursor-pointer;
+    border-color: rgba(0, 0, 0, 0.08);
+    background-color: var(--bg-200);
+  }
+  .roadmap-card:hover,
+  .roadmap-card[data-selected='true'] {
+    border-color: var(--accent);
+    background-color: #F0F7FF;
+    box-shadow: 0 0 0 3px var(--accent-muted);
+  }
+
+  /* Skip link for a11y */
+  .skip-link {
+    @apply absolute -top-full left-4 z-50 px-4 py-2 rounded-full text-sm font-semibold;
+    background: var(--accent);
+    color: white;
+    transition: top var(--dur-micro);
+  }
+  .skip-link:focus {
+    top: 1rem;
+  }
+}
+
+/* ── Utility ───────────────────────────────────────── */
+@layer utilities {
+  .text-hero {
+    font-size: clamp(3rem, 8vw, 6rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+  }
+  .text-title {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+  .text-muted { color: var(--muted); }
+
+  /* Gradient overlay for video thumbnails */
+  .thumbnail-overlay {
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.72) 0%,
+      rgba(0, 0, 0, 0.2) 40%,
+      transparent 100%
+    );
+  }
+
+  /* Aspect ratio helpers */
+  .aspect-9-16 { aspect-ratio: 9 / 16; }
+  .aspect-16-9 { aspect-ratio: 16 / 9; }
+}
+
+/* ── Reduced motion ─────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.3); }
+
+/* ── Print (Save-as-PDF for roadmaps) ──────────────────── */
+@media print {
+  header[role='banner'], footer[role='contentinfo'], .btn-primary, .btn-secondary { display: none !important; }
+  main { padding-top: 0 !important; }
+  .glass-card { box-shadow: none !important; border: 1px solid #e5e5e5 !important; background: #fff !important; backdrop-filter: none !important; }
+  body { background: #fff !important; }
+}
