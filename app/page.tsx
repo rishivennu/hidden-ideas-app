@@ -152,7 +152,7 @@ export default function HomePage() {
                   </p>
                   <Link href="/explore" className="btn-yellow px-6 py-3"><Search className="w-4 h-4" /> Open the research bot</Link>
                 </div>
-                <img src="/illustrations/ideas-head.png" alt="" aria-hidden="true" className="hidden lg:block w-56 justify-self-end drop-shadow-[4px_4px_0_rgba(20,20,20,0.3)]" />
+                <img loading="lazy" decoding="async" src="/illustrations/ideas-head.png" alt="" aria-hidden="true" className="hidden lg:block w-56 justify-self-end drop-shadow-[4px_4px_0_rgba(20,20,20,0.3)]" />
               </div>
             </Reveal>
           </div>
@@ -162,7 +162,7 @@ export default function HomePage() {
         <StackSection z={5} bg="#FFFFFF" labelledby="why-heading">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
             <Reveal className="grid lg:grid-cols-[auto_1fr] items-end gap-6 mb-10">
-              <img src="/illustrations/trio.png" alt="Three happy people" className="hidden lg:block w-52 drop-shadow-[4px_4px_0_rgba(20,20,20,0.15)]" />
+              <img loading="lazy" decoding="async" src="/illustrations/trio.png" alt="Three happy people" className="hidden lg:block w-52 drop-shadow-[4px_4px_0_rgba(20,20,20,0.15)]" />
               <div>
                 <span className="chip bg-biz-green text-white mb-4">Why biz</span>
                 <h2 id="why-heading" className="text-title">Built to get you from idea to income</h2>
@@ -209,8 +209,8 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
             <Reveal>
               <div className="biz-card bg-yellow relative overflow-hidden px-8 py-14 sm:py-20 text-center">
-                <img src="/illustrations/skater.png" alt="" aria-hidden="true" className="hidden sm:block absolute left-4 bottom-0 w-40 -rotate-6" />
-                <img src="/illustrations/watermelon.png" alt="" aria-hidden="true" className="hidden sm:block absolute right-4 top-2 w-36 rotate-6" />
+                <img loading="lazy" decoding="async" src="/illustrations/skater.png" alt="" aria-hidden="true" className="hidden sm:block absolute left-4 bottom-0 w-40 -rotate-6" />
+                <img loading="lazy" decoding="async" src="/illustrations/watermelon.png" alt="" aria-hidden="true" className="hidden sm:block absolute right-4 top-2 w-36 rotate-6" />
                 <div className="relative">
                   <h2 className="text-title mb-4">Your next idea is hiding in the library</h2>
                   <p className="text-ink/80 font-medium max-w-xl mx-auto mb-8">Start browsing {IDEAS.length} curated ideas and download the roadmap that fits you — free.</p>

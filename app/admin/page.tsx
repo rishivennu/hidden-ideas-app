@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Loader2, Plus, Trash2, Upload, LogOut, Inbox, CheckCircle2, Eye, Download, BarChart3, Flame } from 'lucide-react'
+import { Loader2, Plus, Trash2, Upload, LogOut, Inbox, CheckCircle2, Eye, Download, BarChart3, Flame, FileSpreadsheet } from 'lucide-react'
 import CountUp from '@/components/CountUp'
 import MiniBarChart from '@/components/MiniBarChart'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ModalAuth from '@/components/ModalAuth'
 import { supabase } from '@/lib/supabaseClient'
+import { downloadCsv } from '@/lib/exportCsv'
 
 interface ReelRow { id: string; title: string; slug: string; published: boolean; created_at: string }
 interface Submission { id: string; title: string; description: string | null; email: string | null; status: string; created_at: string }
@@ -111,6 +112,19 @@ export default function AdminPage() {
     }
   }
 
+  function exportSubmissions() {
+    const headers = ['Title', 'Description', 'Email', 'Status', 'Submitted']
+    const rows = submissions.map((s) => [
+      s.title,
+      s.description ?? '',
+      s.email ?? '',
+      s.status,
+      new Date(s.created_at).toLocaleString(),
+    ])
+    const stamp = new Date().toISOString().slice(0, 10)
+    downloadCsv(`biz-submissions-${stamp}.csv`, headers, rows)
+  }
+
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Delete "${title}"? This removes its guide and roadmaps too.`)) return
     const res = await fetch(`/api/admin?id=${id}`, { method: 'DELETE' })
@@ -153,9 +167,12 @@ export default function AdminPage() {
   return (
     <Shell>
       <div className="flex items-center justify-between mb-10">
-        <div>
-          <h1 className="text-title">Admin</h1>
-          <p className="text-muted text-sm mt-1">Create ideas, upload guides, manage content.</p>
+        <div className="flex items-center gap-3">
+          <img src="/illustrations/logo-mark.png" alt="biz" className="h-8 w-auto object-contain" />
+          <div>
+            <h1 className="text-title font-display">Admin</h1>
+            <p className="text-muted text-sm mt-1">Create ideas, upload guides, manage content.</p>
+          </div>
         </div>
         <button onClick={handleSignOut} className="btn-secondary text-sm px-4 py-2"><LogOut className="w-4 h-4" /> Sign out</button>
       </div>
@@ -163,8 +180,8 @@ export default function AdminPage() {
       {/* ── Analytics infographics ─────────────────────────── */}
       <section className="mb-10" aria-labelledby="analytics-heading">
         <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="w-5 h-5 text-accent" />
-          <h2 id="analytics-heading" className="text-lg font-semibold">Overview</h2>
+          <BarChart3 className="w-5 h-5 text-ink" />
+          <h2 id="analytics-heading" className="text-lg font-display font-semibold">Overview</h2>
         </div>
 
         {analytics && !analytics.ready && (
@@ -174,10 +191,10 @@ export default function AdminPage() {
         )}
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatTile icon={Eye} label="Total visits" value={analytics?.totalVisits ?? 0} tint="from-blue-500/15 to-cyan-400/10" />
-          <StatTile icon={Download} label="Roadmap downloads" value={analytics?.totalDownloads ?? 0} tint="from-fuchsia-500/15 to-violet-400/10" />
-          <StatTile icon={Inbox} label="Idea submissions" value={submissions.length} tint="from-amber-500/15 to-orange-400/10" />
-          <StatTile icon={Flame} label="Published reels" value={reels.length} tint="from-emerald-500/15 to-teal-400/10" />
+          <StatTile icon={Eye} label="Total visits" value={analytics?.totalVisits ?? 0} tint="bg-biz-sky/40" />
+          <StatTile icon={Download} label="Roadmap downloads" value={analytics?.totalDownloads ?? 0} tint="bg-biz-purple/20" />
+          <StatTile icon={Inbox} label="Idea submissions" value={submissions.length} tint="bg-yellow" />
+          <StatTile icon={Flame} label="Published reels" value={reels.length} tint="bg-biz-green/25" />
         </div>
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-6">
@@ -207,7 +224,7 @@ export default function AdminPage() {
       <div className="grid lg:grid-cols-[1fr_360px] gap-10 items-start">
         {/* Create form */}
         <form onSubmit={handleCreate} className="glass-card p-8 space-y-6">
-          <h2 className="text-lg font-semibold flex items-center gap-2"><Plus className="w-5 h-5 text-accent" /> New idea</h2>
+          <h2 className="text-lg font-display font-semibold flex items-center gap-2"><Plus className="w-5 h-5 text-ink" /> New idea</h2>
 
           <Field label="Reel title" required>
             <input value={title} onChange={(e) => setTitle(e.target.value)} required minLength={4} className={inputCls} placeholder="Weekend micro-fulfillment kiosk" />
@@ -279,7 +296,7 @@ export default function AdminPage() {
         {/* Sidebar: reels + submissions */}
         <div className="space-y-8">
           <div className="glass-card p-6">
-            <h2 className="font-semibold mb-4">Published reels ({reels.length})</h2>
+            <h2 className="font-display font-semibold mb-4">Published reels ({reels.length})</h2>
             <div className="space-y-2 max-h-80 overflow-auto">
               {reels.length === 0 && <p className="text-sm text-muted">None yet.</p>}
               {reels.map((r) => (
@@ -292,7 +309,14 @@ export default function AdminPage() {
           </div>
 
           <div className="glass-card p-6">
-            <h2 className="font-semibold mb-4 flex items-center gap-2"><Inbox className="w-4 h-4" /> Submissions ({submissions.length})</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display font-semibold flex items-center gap-2"><Inbox className="w-4 h-4" /> Submissions ({submissions.length})</h2>
+              {submissions.length > 0 && (
+                <button onClick={exportSubmissions} className="btn-yellow text-xs px-3 py-1.5" title="Download all submissions as a spreadsheet (opens in Excel)">
+                  <FileSpreadsheet className="w-3.5 h-3.5" /> Export
+                </button>
+              )}
+            </div>
             <div className="space-y-3 max-h-80 overflow-auto">
               {submissions.length === 0 && <p className="text-sm text-muted">No submissions yet.</p>}
               {submissions.map((s) => (
@@ -314,8 +338,8 @@ const inputCls = 'w-full px-3 py-2.5 rounded-14 border border-black/10 bg-white 
 
 function StatTile({ icon: Icon, label, value, tint }: { icon: React.ComponentType<{ className?: string }>; label: string; value: number; tint: string }) {
   return (
-    <div className={`glass-card p-5 relative overflow-hidden bg-gradient-to-br ${tint}`}>
-      <Icon className="w-5 h-5 text-accent mb-3" aria-hidden="true" />
+    <div className={`glass-card p-5 relative overflow-hidden ${tint}`}>
+      <Icon className="w-5 h-5 text-ink mb-3" aria-hidden="true" />
       <p className="text-3xl font-bold tracking-tight"><CountUp value={value} /></p>
       <p className="text-sm text-muted mt-0.5">{label}</p>
     </div>

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabaseServer'
 
+export const runtime = 'nodejs'
+
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = 5
 const WINDOW_MS = 60_000
@@ -41,12 +43,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 })
   }
 
-  const admin = createAdminSupabaseClient()
+  let admin
+  try {
+    admin = createAdminSupabaseClient()
+  } catch (e) {
+    console.error('Submit config error:', e)
+    return NextResponse.json({ error: 'Server is not configured to save submissions (missing SUPABASE_SERVICE_ROLE_KEY). Contact the site owner.' }, { status: 500 })
+  }
+
   const { error } = await admin.from('submissions').insert({ title, description, email })
 
   if (error) {
-    console.error('Submission error:', error)
-    return NextResponse.json({ error: 'Failed to save submission.' }, { status: 500 })
+    console.error('Submission insert error:', error)
+    // 42P01 = undefined_table — the migration hasn't been run on this database.
+    if (error.code === '42P01') {
+      return NextResponse.json({ error: 'Submissions table is missing. Run migration 001_initial.sql in Supabase.' }, { status: 500 })
+    }
+    return NextResponse.json({ error: 'Failed to save submission. Please try again.' }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })

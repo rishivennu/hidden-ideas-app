@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Fredoka } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/react'
 import TrackVisit from '@/components/TrackVisit'
+import FollowGate from '@/components/FollowGate'
 import './globals.css'
 
 const inter = Inter({
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to main content
         </a>
         {children}
+        <FollowGate />
         <TrackVisit />
         <Analytics />
       </body>
