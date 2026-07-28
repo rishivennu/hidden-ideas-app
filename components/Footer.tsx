@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { Instagram } from 'lucide-react'
+import { IG_HANDLE, IG_URL } from './FollowGate'
 
 export default function Footer() {
   return (
@@ -14,10 +16,15 @@ export default function Footer() {
             <p className="text-sm text-paper/70 max-w-xs">
               A living library of under-the-radar business ideas — free roadmaps, real ₹ numbers, and a smart research bot.
             </p>
+            <a href={IG_URL} target="_blank" rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 rounded-full border-2 border-yellow bg-transparent text-yellow font-bold text-sm px-4 py-2 hover:bg-yellow hover:text-ink transition-colors">
+              <Instagram className="w-4 h-4" aria-hidden="true" /> Follow @{IG_HANDLE}
+            </a>
           </div>
           <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold">
             <Link href="/library" className="text-paper/80 hover:text-yellow transition-colors">Library</Link>
             <Link href="/explore" className="text-paper/80 hover:text-yellow transition-colors">Explore</Link>
+            <Link href="/builder" className="text-paper/80 hover:text-yellow transition-colors">Builder</Link>
             <Link href="/submit" className="text-paper/80 hover:text-yellow transition-colors">Submit</Link>
             <Link href="/privacy" className="text-paper/80 hover:text-yellow transition-colors">Privacy</Link>
             <Link href="/terms" className="text-paper/80 hover:text-yellow transition-colors">Terms</Link>

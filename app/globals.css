@@ -28,7 +28,8 @@ html {
   text-rendering: optimizeLegibility;
 }
 
-body { -webkit-overflow-scrolling: touch; text-size-adjust: 100%; }
+body { -webkit-overflow-scrolling: touch; text-size-adjust: 100%; overflow-x: clip; }
+html { overflow-x: clip; }
 
 img { max-width: 100%; }
 
