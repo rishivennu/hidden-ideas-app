@@ -12,6 +12,8 @@ import Reveal from '@/components/Reveal'
 import HeroZoom from '@/components/HeroZoom'
 import StackSection from '@/components/StackSection'
 import WeeklySpotlight from '@/components/WeeklySpotlight'
+import Testimonials from '@/components/Testimonials'
+import StickyCTA from '@/components/StickyCTA'
 import { IDEAS, CATEGORIES } from '@/lib/demoData'
 
 export const metadata: Metadata = {
@@ -184,8 +186,13 @@ export default function HomePage() {
           </div>
         </StackSection>
 
+        {/* Social proof — testimonials marquee */}
+        <StackSection z={6} bg="#FFF6DF" labelledby="testi-heading">
+          <Testimonials />
+        </StackSection>
+
         {/* Layer 5 — FAQ */}
-        <StackSection z={6} bg="#FFFDF5" labelledby="faq-heading">
+        <StackSection z={7} bg="#FFFDF5" labelledby="faq-heading">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
             <Reveal className="mb-8"><h2 id="faq-heading" className="text-title text-center">Questions, answered</h2></Reveal>
             <div className="space-y-3">
@@ -205,7 +212,7 @@ export default function HomePage() {
         </StackSection>
 
         {/* Layer 6 — final CTA (last unmask moment) */}
-        <StackSection z={7} bg="#FFFFFF">
+        <StackSection z={8} bg="#FFFFFF">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
             <Reveal>
               <div className="biz-card bg-yellow relative overflow-hidden px-8 py-14 sm:py-20 text-center">
@@ -223,6 +230,7 @@ export default function HomePage() {
 
       </main>
       <Footer />
+      <StickyCTA />
     </>
   )
 }

@@ -3,18 +3,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Instagram, ArrowRight, Check, Timer, User } from 'lucide-react'
+import { Instagram, Check } from 'lucide-react'
+import { fireConfetti } from '@/lib/confetti'
 
-// Honor-gate + strongest-feasible verification.
-// Instagram provides NO public API for a third-party website to verify follows,
-// so we do the next best thing: enforce the follow action, force a 6-second
-// wait (prevents instant skip), capture their @handle, and store it via
-// /api/submit so the account owner can cross-check the real follower list.
+// Simple honor gate: follow @bizwithrishi to unlock. No verification check,
+// no countdown — the user opens Instagram, then confirms and enters. Fast.
 export const IG_HANDLE = 'bizwithrishi'
 export const IG_URL    = `https://www.instagram.com/${IG_HANDLE}`
 const KEY      = 'biz:ig-follow'
-const DELAY_MS = 5000   // 5 s after landing before gate appears
-const WAIT_S   = 6      // countdown after opening IG before verify step
+const DELAY_MS = 3000   // wait 3s after landing before the gate appears
 
 function alreadyUnlocked() {
   if (typeof window === 'undefined') return true
@@ -26,19 +23,13 @@ function persistUnlock() {
   document.cookie = `${KEY}=1; path=/; max-age=${60*60*24*365}; SameSite=Lax`
 }
 
-type Step = 'intro' | 'verify' | 'done'
+type Step = 'intro' | 'confirm' | 'done'
 
 export default function FollowGate() {
   const pathname        = usePathname()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<Step>('intro')
-  const [handle, setHandle]       = useState('')
-  const [countdown, setCountdown] = useState(WAIT_S)
-  const [counting, setCounting]   = useState(false)
-  const [saving, setSaving]       = useState(false)
-  const [handleErr, setHandleErr] = useState('')
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
-  const cdRef    = useRef<ReturnType<typeof setInterval>>()
 
   const skip = pathname?.startsWith('/admin') || pathname?.startsWith('/auth') ||
                pathname?.startsWith('/login')  || pathname?.startsWith('/signup')
@@ -59,39 +50,13 @@ export default function FollowGate() {
 
   function openInstagram() {
     window.open(IG_URL, '_blank', 'noopener,noreferrer')
-    if (!counting) {
-      setCounting(true)
-      setCountdown(WAIT_S)
-      cdRef.current = setInterval(() => {
-        setCountdown(n => {
-          if (n <= 1) { clearInterval(cdRef.current); return 0 }
-          return n - 1
-        })
-      }, 1000)
-    }
-    setStep('verify')
+    setStep('confirm')
   }
 
-  async function confirmFollow() {
-    const clean = handle.replace(/^@/, '').trim()
-    if (!clean) { setHandleErr('Please enter your Instagram username.'); return }
-    setHandleErr('')
-    setSaving(true)
-    // Store handle for owner to cross-check against real follower list
-    try {
-      await fetch('/api/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: `IG follow-gate: @${clean}`,
-          description: `@${clean} confirmed following @${IG_HANDLE} via the follow gate on ${new Date().toLocaleDateString()}.`,
-          email: null,
-        }),
-      })
-    } catch { /* non-blocking */ }
-    setSaving(false)
+  function enterSite() {
     setStep('done')
-    setTimeout(() => { persistUnlock(); setOpen(false) }, 1400)
+    fireConfetti()
+    setTimeout(() => { persistUnlock(); setOpen(false) }, 1200)
   }
 
   return (
@@ -149,63 +114,23 @@ export default function FollowGate() {
                   </motion.div>
                 )}
 
-                {step === 'verify' && (
-                  <motion.div key="verify"
+                {step === 'confirm' && (
+                  <motion.div key="confirm"
                     initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }}
                     transition={{ duration:0.22 }}>
-                    <h2 id="fg-title" className="font-display font-bold text-xl text-ink mb-1">
-                      {countdown > 0 ? 'Following @' + IG_HANDLE + '?' : 'Confirm your follow'}
+                    <h2 id="fg-title" className="font-display font-bold text-2xl text-ink mb-2">
+                      All done?
                     </h2>
-                    <p className="text-muted text-sm mb-5">
-                      {countdown > 0
-                        ? 'Waiting a moment for Instagram to register your follow…'
-                        : 'Enter your @handle so we can verify you followed.'}
+                    <p className="text-muted text-sm mb-6 leading-relaxed">
+                      Once you&apos;ve tapped <strong className="text-ink">Follow</strong> on Instagram,
+                      come back and jump straight in.
                     </p>
-
-                    {countdown > 0 ? (
-                      <div className="flex items-center justify-center gap-3 py-4 mb-5">
-                        <Timer className="w-5 h-5 text-biz-pink animate-pulse" />
-                        <span className="font-display font-bold text-5xl text-ink tabular-nums leading-none">{countdown}</span>
-                        <span className="text-muted text-sm self-end mb-1">sec</span>
-                      </div>
-                    ) : (
-                      <div className="text-left mb-4">
-                        <label htmlFor="fg-handle" className="block text-sm font-semibold text-ink mb-1.5">
-                          Your Instagram username
-                        </label>
-                        <div className="flex items-center gap-2 border-2 border-ink rounded-full px-4 py-2.5 bg-white shadow-hard-sm">
-                          <User className="w-4 h-4 text-muted shrink-0" />
-                          <span className="text-muted font-medium text-sm">@</span>
-                          <input
-                            id="fg-handle"
-                            type="text"
-                            value={handle}
-                            onChange={e => { setHandle(e.target.value); setHandleErr('') }}
-                            placeholder="yourhandle"
-                            className="flex-1 bg-transparent text-sm text-ink placeholder:text-muted outline-none font-medium"
-                            autoComplete="off"
-                            autoCapitalize="none"
-                            spellCheck={false}
-                          />
-                        </div>
-                        {handleErr && <p className="text-xs text-biz-pink mt-1.5 font-semibold">{handleErr}</p>}
-                      </div>
-                    )}
-
-                    <button
-                      onClick={countdown > 0 ? openInstagram : confirmFollow}
-                      disabled={saving || countdown > 0}
-                      className="btn-yellow w-full py-3.5 gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[4px_4px_0_var(--ink)]">
-                      {saving
-                        ? 'Saving…'
-                        : countdown > 0
-                          ? `Please wait ${countdown}s…`
-                          : <><Check className="w-4 h-4" strokeWidth={3} /> I&apos;ve followed — enter site</>}
+                    <button onClick={enterSite} className="btn-yellow w-full py-3.5 gap-2 mb-3">
+                      <Check className="w-4 h-4" strokeWidth={3} /> I&apos;ve followed — enter site
                     </button>
-
-                    <button onClick={() => setStep('intro')}
-                      className="text-xs text-muted underline mt-3 block mx-auto hover:text-ink transition-colors">
-                      Not followed yet? Go back
+                    <button onClick={openInstagram}
+                      className="text-xs text-muted underline block mx-auto hover:text-ink transition-colors">
+                      Open Instagram again
                     </button>
                   </motion.div>
                 )}

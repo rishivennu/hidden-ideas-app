@@ -15,13 +15,17 @@ export default function VideoPlayer({ src, poster, title }: VideoPlayerProps) {
   const [muted, setMuted] = useState(true)
   const [loaded, setLoaded] = useState(false)
 
-  // Autoplay muted on mount (browser policy requires muted for autoplay)
+  // Autoplay muted on mount + when the source becomes playable (browser policy
+  // requires muted for programmatic autoplay). Retries on canplay for slow links.
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
     v.muted = true
-    v.play().catch(() => {})
-  }, [])
+    const tryPlay = () => { v.play().then(() => setPlaying(true)).catch(() => {}) }
+    tryPlay()
+    v.addEventListener('canplay', tryPlay)
+    return () => v.removeEventListener('canplay', tryPlay)
+  }, [src])
 
   const togglePlay = useCallback(() => {
     const v = videoRef.current
@@ -57,10 +61,11 @@ export default function VideoPlayer({ src, poster, title }: VideoPlayerProps) {
         ref={videoRef}
         src={src}
         poster={poster}
+        autoPlay
         playsInline
         loop
         muted={muted}
-        preload="metadata"
+        preload="auto"
         className="w-full h-full object-cover"
         aria-label={title}
         onLoadedMetadata={() => setLoaded(true)}

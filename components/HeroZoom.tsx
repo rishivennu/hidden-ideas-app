@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, useMotionTemplate } from 'framer-motion'
 import { Library, Compass, Search } from 'lucide-react'
+import RotatingWord from './RotatingWord'
+import Spotlight from './Spotlight'
+import MagneticButton from './MagneticButton'
 
 // Apple-TV style scroll zoom: a full-bleed stage (sticky, 100vh) that scales
 // DOWN into a framed card as you scroll. The "Now exploring" pill counter-
@@ -27,6 +30,7 @@ export default function HeroZoom() {
           style={{ scale, borderRadius: radius, boxShadow: ring }}
           className="relative w-full h-[90svh] bg-yellow overflow-hidden flex items-center justify-center"
         >
+          <Spotlight />
           {/* floating illustration cutouts */}
           <Floaty src="/illustrations/skater.png" alt="" className="block w-20 sm:w-40 lg:w-56 left-[1%] bottom-[3%] -rotate-6" delay={0} />
           <Floaty src="/illustrations/watermelon.png" alt="" className="block w-20 sm:w-36 lg:w-48 right-[1%] top-[9%] rotate-6" delay={0.6} />
@@ -35,7 +39,14 @@ export default function HeroZoom() {
 
           {/* center content — extra top padding so the pill clears the nav at rest */}
           <div className="relative z-10 text-center px-5 max-w-3xl pt-28 sm:pt-24 lg:pt-16">
-            <h1 className="text-hero text-ink mb-4">Find the biz<br />hiding in plain sight</h1>
+            <h1 className="text-hero text-ink mb-4" aria-label="Find the biz hiding in plain sight">
+              <span aria-hidden="true">Find the biz<br />
+                <RotatingWord
+                  words={['hiding', 'waiting', 'growing', 'thriving']}
+                  className="text-biz-pink"
+                /> in plain sight
+              </span>
+            </h1>
             <p className="text-lg sm:text-xl font-medium text-ink/80 max-w-xl mx-auto mb-7">
               A living library of under-the-radar business ideas — with downloadable roadmaps, real ₹ numbers, and a smart research bot. No subscription.
             </p>
@@ -57,8 +68,12 @@ export default function HeroZoom() {
               </button>
             </form>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Link href="/library" className="btn-primary px-7 py-3.5"><Library className="w-4 h-4" /> Browse the library</Link>
-              <Link href="/explore" className="btn-secondary px-7 py-3.5"><Compass className="w-4 h-4" /> Open research bot</Link>
+              <MagneticButton>
+                <Link href="/library" className="btn-primary px-7 py-3.5"><Library className="w-4 h-4" /> Browse the library</Link>
+              </MagneticButton>
+              <MagneticButton>
+                <Link href="/explore" className="btn-secondary px-7 py-3.5"><Compass className="w-4 h-4" /> Open research bot</Link>
+              </MagneticButton>
             </div>
             <p className="mt-6 text-sm font-semibold text-ink/50">Scroll to explore ↓</p>
           </div>

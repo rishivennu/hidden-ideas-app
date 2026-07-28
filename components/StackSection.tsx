@@ -1,13 +1,15 @@
 'use client'
 
-import { ReactNode, useRef } from 'react'
-import { motion, useScroll, useTransform, useMotionTemplate, useReducedMotion } from 'framer-motion'
+import { ReactNode } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 
 // Stacked-card reveal. Each section laps over the previous one (negative top
 // margin + rounded top edge + shadow) and does a "liquid" clip-path wipe as it
-// scrolls into view. Driven by framer-motion's scroll transforms (JS) instead
-// of CSS `animation-timeline: view()` so it runs on EVERY browser — including
-// iOS Safari and in-app mobile webviews, where the CSS version silently no-ops.
+// enters the viewport. Uses whileInView (viewport intersection) instead of a
+// scroll-linked progress value so EVERY section — including the last one, which
+// has no scroll runway beneath it — always settles to its final resting state.
+// (The old scroll-linked version left the final section shifted up + clipped on
+// short mobile viewports, showing a white gap before the footer.)
 export default function StackSection({
   children,
   z,
@@ -23,21 +25,7 @@ export default function StackSection({
   labelledby?: string
   first?: boolean
 }) {
-  const ref = useRef<HTMLElement>(null)
   const reduce = useReducedMotion()
-
-  // Progress from when the section's top hits the bottom of the viewport (0)
-  // to when it reaches ~48% up the screen (1). Smaller range = snappier reveal.
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start end', 'start 48%'],
-  })
-
-  const inset = useTransform(scrollYProgress, [0, 1], [44, 0])
-  const y = useTransform(scrollYProgress, [0, 1], [56, 0])
-  const scale = useTransform(scrollYProgress, [0, 1], [0.97, 1])
-  const opacity = useTransform(scrollYProgress, [0, 0.6], [0.4, 1])
-  const clipPath = useMotionTemplate`inset(${inset}% 0 0 0)`
 
   const base = `relative border-t-2 border-ink rounded-t-[40px] sm:rounded-t-[56px] shadow-[0_-14px_50px_rgba(20,20,20,0.16)] ${first ? '' : '-mt-10 sm:-mt-12'}`
 
@@ -52,11 +40,14 @@ export default function StackSection({
 
   return (
     <motion.section
-      ref={ref}
       id={id}
       aria-labelledby={labelledby}
       className={base}
-      style={{ zIndex: z, backgroundColor: bg, clipPath, y, scale, opacity, willChange: 'clip-path, transform, opacity' }}
+      style={{ zIndex: z, backgroundColor: bg, willChange: 'clip-path, transform, opacity' }}
+      initial={{ clipPath: 'inset(44% 0 0 0)', y: 56, scale: 0.97, opacity: 0.4 }}
+      whileInView={{ clipPath: 'inset(0% 0 0 0)', y: 0, scale: 1, opacity: 1 }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.section>

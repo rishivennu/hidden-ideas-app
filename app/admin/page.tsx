@@ -317,9 +317,14 @@ export default function AdminPage() {
             <div className="space-y-2 max-h-80 overflow-auto">
               {reels.length === 0 && <p className="text-sm text-muted">None yet.</p>}
               {reels.map((r) => (
-                <div key={r.id} className="flex items-center justify-between gap-2 text-sm py-2 border-b border-ink/5 last:border-0">
-                  <Link href={`/reels/${r.slug}`} className="truncate hover:text-accent" target="_blank">{r.title}</Link>
-                  <button onClick={() => handleDelete(r.id, r.title)} aria-label={`Delete ${r.title}`} className="text-muted hover:text-biz-pink shrink-0 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                <div key={r.id} className="flex items-center justify-between gap-3 text-sm py-2.5 border-b border-ink/5 last:border-0">
+                  <Link href={`/reels/${r.slug}`} className="truncate hover:text-accent flex-1 min-w-0 font-medium" target="_blank">{r.title}</Link>
+                  <button
+                    onClick={() => handleDelete(r.id, r.title)}
+                    aria-label={`Delete ${r.title}`}
+                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-biz-pink text-biz-pink text-xs font-bold hover:bg-biz-pink hover:text-white transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
                 </div>
               ))}
             </div>

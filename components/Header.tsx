@@ -47,7 +47,15 @@ export default function Header() {
           }`}
         >
           <Link href="/" aria-label="biz — home" className="shrink-0 flex items-center">
-            <img src="/illustrations/logo-mark.png" alt="biz" className={`w-auto object-contain transition-[height] duration-300 ${scrolled ? 'h-6' : 'h-7'}`} />
+            <motion.img
+              src="/illustrations/logo-mark.png" alt="biz"
+              className={`w-auto object-contain transition-[height] duration-300 ${scrolled ? 'h-6' : 'h-7'}`}
+              initial={{ opacity: 0, scale: 0.5, rotate: -14 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 16, delay: 0.15 }}
+              whileHover={{ rotate: [0, -9, 7, -4, 0], scale: 1.12, transition: { duration: 0.55, ease: 'easeInOut' } }}
+              whileTap={{ scale: 0.92 }}
+            />
           </Link>
 
           {/* Desktop nav (lg+) — tablets fall back to the clean menu below */}
