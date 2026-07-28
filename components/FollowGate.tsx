@@ -6,8 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Instagram, Check } from 'lucide-react'
 import { fireConfetti } from '@/lib/confetti'
 
-// Simple honor gate: follow @bizwithrishi to unlock. No verification check,
-// no countdown — the user opens Instagram, then confirms and enters. Fast.
+// Friendly, OPTIONAL follow prompt for @bizwithrishi. Following is never forced —
+// the user can enter the site straight away with "Maybe later". Once dismissed
+// (either path) it won't nag again. No verification check, no countdown.
 export const IG_HANDLE = 'bizwithrishi'
 export const IG_URL    = `https://www.instagram.com/${IG_HANDLE}`
 const KEY      = 'biz:ig-follow'
@@ -83,7 +84,7 @@ export default function FollowGate() {
                 <Instagram className="w-7 h-7 text-yellow" aria-hidden="true" />
               </div>
               <p className="font-display font-bold text-ink text-base leading-snug">
-                Free access · one small favour
+                Enjoying biz so far?
               </p>
             </div>
 
@@ -95,22 +96,27 @@ export default function FollowGate() {
                     initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }}
                     transition={{ duration:0.22 }}>
                     <h2 id="fg-title" className="font-display font-bold text-2xl text-ink mb-2">
-                      Follow to unlock
+                      Would you give us a follow?
                     </h2>
                     <p className="text-muted text-sm mb-6 leading-relaxed">
-                      We keep <strong className="text-ink">biz</strong> 100% free.
-                      Follow{' '}
+                      <strong className="text-ink">biz</strong> is 100% free — no catch.
+                      A follow on{' '}
                       <a href={IG_URL} target="_blank" rel="noopener noreferrer"
                         className="font-bold text-ink underline decoration-2 decoration-biz-pink underline-offset-2">
                         @{IG_HANDLE}
                       </a>{' '}
-                      on Instagram — ideas, roadmaps and the builder are all yours.
+                      is completely optional, but it genuinely helps us keep the ideas
+                      coming. Totally your call.
                     </p>
-                    <button onClick={openInstagram} className="btn-primary w-full py-3.5 gap-2 mb-3">
+                    <button onClick={openInstagram} className="btn-primary w-full py-3.5 gap-2 mb-2">
                       <Instagram className="w-4 h-4" />
-                      Follow @{IG_HANDLE} on Instagram
+                      Sure — follow @{IG_HANDLE}
                     </button>
-                    <p className="text-[11px] text-muted">Opens Instagram in a new tab. Come back here after following.</p>
+                    <button onClick={enterSite}
+                      className="btn-secondary w-full py-3 gap-2 mb-3">
+                      Maybe later — just let me in
+                    </button>
+                    <p className="text-[11px] text-muted">Following opens Instagram in a new tab. Either way, you get full access.</p>
                   </motion.div>
                 )}
 
@@ -131,6 +137,10 @@ export default function FollowGate() {
                     <button onClick={openInstagram}
                       className="text-xs text-muted underline block mx-auto hover:text-ink transition-colors">
                       Open Instagram again
+                    </button>
+                    <button onClick={enterSite}
+                      className="text-xs text-muted underline block mx-auto mt-2 hover:text-ink transition-colors">
+                      Skip &mdash; enter site
                     </button>
                   </motion.div>
                 )}

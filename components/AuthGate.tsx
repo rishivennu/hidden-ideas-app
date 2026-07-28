@@ -39,7 +39,17 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setStatus(session || hasPhoneAccess() ? 'authed' : 'unauthed')
     })
-    return () => subscription.unsubscribe()
+
+    // Phone access grants no Supabase event — listen for our own signal + cross-tab storage
+    const onPhoneAccess = () => { if (hasPhoneAccess()) setStatus('authed') }
+    window.addEventListener('biz:phone-access', onPhoneAccess)
+    window.addEventListener('storage', onPhoneAccess)
+
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener('biz:phone-access', onPhoneAccess)
+      window.removeEventListener('storage', onPhoneAccess)
+    }
   }, [])
 
   // Public paths pass through immediately

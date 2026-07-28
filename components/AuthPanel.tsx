@@ -93,6 +93,8 @@ export default function AuthPanel({ mode: initMode, onSuccess, redirectTo = '/' 
       }).catch(() => {})
       // Grant access locally — no Supabase phone provider / Twilio required
       localStorage.setItem(PHONE_ACCESS_KEY, '1')
+      // Tell AuthGate (mounted in layout, won't re-check on client nav) immediately
+      window.dispatchEvent(new Event('biz:phone-access'))
       setPhase('phone-done')
       // Brief thank-you pause before calling onSuccess (which navigates away)
       await new Promise(r => setTimeout(r, 1600))
