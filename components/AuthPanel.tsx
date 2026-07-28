@@ -5,16 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Phone, Loader2, Check, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 
-// ── Providers that need Supabase dashboard config (one-time): ────────────────
-// PHONE: Supabase → Auth → Providers → Phone → enable + paste Twilio creds.
-// GOOGLE: Supabase → Auth → Providers → Google → enable + paste OAuth Client
-//          ID / Secret (create at console.cloud.google.com → APIs → Credentials).
+// ── Auth providers note ────────────────────────────────────────────────────
+// PHONE: bypasses SMS entirely — grants access via localStorage flag (no Twilio needed).
+// GOOGLE: Supabase → Auth → Providers → Google → enable + paste OAuth Client ID/Secret.
 // EMAIL:  works out of the box — no config needed.
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 
 type AuthMode  = 'login' | 'signup'
 type Method    = 'email' | 'google' | 'phone'
-type PhaseType = 'input' | 'otp' | 'magic-sent'
+type PhaseType = 'input' | 'otp' | 'magic-sent' | 'phone-done'
+
+// localStorage key shared with AuthGate to grant phone-number access
+export const PHONE_ACCESS_KEY = 'biz:phone-access'
 
 interface Props {
   mode: AuthMode
@@ -73,30 +75,45 @@ export default function AuthPanel({ mode: initMode, onSuccess, redirectTo = '/' 
     } finally { setLoading(false) }
   }
 
-  // ── Phone ─────────────────────────────────────────────────────────────────
+  // ── Phone — instant access (no SMS / no Twilio cost) ──────────────────────
+  // Stores phone in submissions for owner reference, grants access via localStorage.
   async function handlePhone(e: React.FormEvent) {
     e.preventDefault(); setLoading(true); setError(null)
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: phone.startsWith('+') ? phone : '+91' + phone.replace(/\D/g,''),
-      })
-      if (error) throw error
-      setPhase('otp')
+      const cleaned = phone.startsWith('+') ? phone : '+91' + phone.replace(/\D/g, '')
+      // Record number for owner (fire-and-forget — never blocks access)
+      fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Mobile signup: ${cleaned}`,
+          description: 'Phone-gate access granted — no OTP needed',
+        }),
+        keepalive: true,
+      }).catch(() => {})
+      // Grant access locally — no Supabase phone provider / Twilio required
+      localStorage.setItem(PHONE_ACCESS_KEY, '1')
+      setPhase('phone-done')
+      // Brief thank-you pause before calling onSuccess (which navigates away)
+      await new Promise(r => setTimeout(r, 1600))
+      onSuccess?.()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'SMS failed. Check your number.')
+      setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally { setLoading(false) }
   }
 
+  // Keep handleOtp for reference but it is no longer called by the phone flow
   async function handleOtp(e: React.FormEvent) {
     e.preventDefault(); setLoading(true); setError(null)
     try {
-      const cleaned = phone.startsWith('+') ? phone : '+91' + phone.replace(/\D/g,'')
+      const cleaned = phone.startsWith('+') ? phone : '+91' + phone.replace(/\D/g, '')
       const { error } = await supabase.auth.verifyOtp({ phone: cleaned, token: otp, type: 'sms' })
       if (error) throw error
       onSuccess?.()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
     } finally { setLoading(false) }
+    void handleOtp // suppress unused warning — kept for future SMS re-enable
   }
 
   const inputCls = 'w-full px-4 py-3 rounded-full border-2 border-ink bg-white text-sm font-medium shadow-hard-sm focus:outline-none focus:ring-2 focus:ring-yellow focus:border-ink transition-all placeholder:text-muted'
@@ -180,11 +197,11 @@ export default function AuthPanel({ mode: initMode, onSuccess, redirectTo = '/' 
           </motion.div>
         )}
 
-        {/* ── Phone / OTP ── */}
+        {/* ── Phone — enter number → instant access (no OTP) ── */}
         {method === 'phone' && phase === 'input' && (
           <motion.div key="phone" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}>
             <p className="text-sm text-muted text-center mb-4">
-              Enter your mobile number. We&apos;ll send a one-time code.
+              Enter your mobile number for instant access — no code needed.
             </p>
             {error && <p role="alert" className="text-sm text-biz-pink font-semibold mb-3 text-center">{error}</p>}
             <form onSubmit={handlePhone} className="space-y-3" noValidate>
@@ -197,32 +214,23 @@ export default function AuthPanel({ mode: initMode, onSuccess, redirectTo = '/' 
               </div>
               <button type="submit" disabled={loading||phone.replace(/\D/g,'').length<10}
                 className="btn-primary w-full py-3.5 gap-2">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : <>Send OTP <ArrowRight className="w-4 h-4"/></>}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : <>Get Access <ArrowRight className="w-4 h-4"/></>}
               </button>
             </form>
           </motion.div>
         )}
 
-        {method === 'phone' && phase === 'otp' && (
-          <motion.div key="otp" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}>
-            <p className="text-sm text-muted text-center mb-4">
-              Enter the 6-digit code sent to <strong className="text-ink">{phone}</strong>.
-            </p>
-            {error && <p role="alert" className="text-sm text-biz-pink font-semibold mb-3 text-center">{error}</p>}
-            <form onSubmit={handleOtp} className="space-y-3" noValidate>
-              <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6}
-                value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,''))}
-                placeholder="123456" required autoComplete="one-time-code"
-                className={inputCls + ' text-center tracking-widest text-lg font-bold'} />
-              <button type="submit" disabled={loading||otp.length<6}
-                className="btn-primary w-full py-3.5 gap-2">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : <><Check className="w-4 h-4" strokeWidth={3}/> Verify &amp; sign in</>}
-              </button>
-              <button type="button" onClick={()=>{reset();setPhone('')}}
-                className="text-xs text-muted underline w-full text-center">
-                Change number
-              </button>
-            </form>
+        {/* ── Phone done — thank you state ── */}
+        {method === 'phone' && phase === 'phone-done' && (
+          <motion.div key="phone-done"
+            initial={{opacity:0, scale:0.92}} animate={{opacity:1, scale:1}}
+            transition={{duration:0.3, ease:[0.22,1,0.36,1]}}
+            className="text-center py-4">
+            <div className="w-16 h-16 rounded-full bg-yellow border-2 border-ink shadow-hard mx-auto mb-4 flex items-center justify-center">
+              <Check className="w-7 h-7 text-ink" strokeWidth={3}/>
+            </div>
+            <p className="font-display font-bold text-ink text-xl mb-2">You're in!</p>
+            <p className="text-muted text-sm">Thank you for joining. Taking you there now…</p>
           </motion.div>
         )}
 

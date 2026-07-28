@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Loader2, Plus, Trash2, Upload, LogOut, Inbox, CheckCircle2, Eye, Download, BarChart3, Flame, FileSpreadsheet } from 'lucide-react'
+import { Loader2, Plus, Trash2, Upload, LogOut, Inbox, CheckCircle2, Eye, Download, BarChart3, Flame, FileSpreadsheet, AlertCircle } from 'lucide-react'
 import CountUp from '@/components/CountUp'
 import MiniBarChart from '@/components/MiniBarChart'
 import Header from '@/components/Header'
@@ -166,15 +166,23 @@ export default function AdminPage() {
   // ── Dashboard ─────────────────────────────────────────────
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-10">
-        <div className="flex items-center gap-3">
-          <img src="/illustrations/logo-mark.png" alt="biz" className="h-8 w-auto object-contain" />
-          <div>
-            <h1 className="text-title font-display">Admin</h1>
-            <p className="text-muted text-sm mt-1">Create ideas, upload guides, manage content.</p>
+      {/* ── Yellow brand header ───────────────────────────── */}
+      <div className="biz-card bg-yellow overflow-hidden mb-10">
+        <div className="px-6 py-6 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-ink flex items-center justify-center shrink-0">
+              <img src="/illustrations/logo-mark.png" alt="biz"
+                className="h-7 w-auto object-contain brightness-0 invert" />
+            </div>
+            <div>
+              <h1 className="font-display font-bold text-2xl text-ink leading-tight">Admin Panel</h1>
+              <p className="text-ink/70 text-sm mt-0.5">Create ideas · upload guides · manage content</p>
+            </div>
           </div>
+          <button onClick={handleSignOut} className="btn-secondary text-sm px-4 py-2 shrink-0">
+            <LogOut className="w-4 h-4" /> Sign out
+          </button>
         </div>
-        <button onClick={handleSignOut} className="btn-secondary text-sm px-4 py-2"><LogOut className="w-4 h-4" /> Sign out</button>
       </div>
 
       {/* ── Analytics infographics ─────────────────────────── */}
@@ -185,8 +193,17 @@ export default function AdminPage() {
         </div>
 
         {analytics && !analytics.ready && (
-          <div className="glass-card p-4 mb-4 text-sm text-muted">
-            Analytics table not found yet. Run migration <code className="text-accent">002_analytics.sql</code> in Supabase to start collecting visits &amp; downloads.
+          <div className="biz-card bg-yellow/30 p-4 mb-6 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-ink shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-ink mb-1">Analytics table not set up yet — visits show 0</p>
+              <p className="text-ink/70">
+                To start counting visits &amp; downloads, run the migration in your Supabase project:
+                {' '}<strong>Supabase Dashboard → SQL Editor → New Query</strong>, paste the contents of{' '}
+                <code className="bg-ink/10 px-1.5 py-0.5 rounded text-xs">supabase/migrations/002_analytics.sql</code>{' '}
+                from your project files, then click Run.
+              </p>
+            </div>
           </div>
         )}
 
@@ -199,7 +216,7 @@ export default function AdminPage() {
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-6">
           <div className="glass-card p-6">
-            <h3 className="font-semibold text-sm mb-4">Traffic &amp; downloads</h3>
+            <h3 className="font-semibold text-sm mb-4">Traffic &amp; downloads (last 14 days)</h3>
             {analytics && analytics.series.length > 0
               ? <MiniBarChart series={analytics.series} />
               : <p className="text-sm text-muted py-12 text-center">No data in the last 14 days yet.</p>}
@@ -210,7 +227,7 @@ export default function AdminPage() {
               <ol className="space-y-3">
                 {analytics.topIdeas.map((t, i) => (
                   <li key={t.slug} className="flex items-center gap-3 text-sm">
-                    <span className="w-6 h-6 shrink-0 rounded-full bg-accent/10 text-accent text-xs font-semibold flex items-center justify-center">{i + 1}</span>
+                    <span className="w-6 h-6 shrink-0 rounded-full bg-yellow border-2 border-ink text-ink text-xs font-bold flex items-center justify-center">{i + 1}</span>
                     <span className="truncate flex-1">{t.slug.replace(/-/g, ' ')}</span>
                     <span className="text-muted text-xs">{t.count}</span>
                   </li>
@@ -246,8 +263,8 @@ export default function AdminPage() {
             <FileInput file={thumbnail} onChange={setThumbnail} accept="image/*" hint="PNG or JPG, shown on the reel card" />
           </Field>
 
-          <div className="h-px bg-black/8" />
-          <h3 className="font-semibold">Setup guide (optional)</h3>
+          <div className="h-px bg-ink/10" />
+          <h3 className="font-display font-semibold">Setup guide (optional)</h3>
           <Field label="Guide title">
             <input value={guideTitle} onChange={(e) => setGuideTitle(e.target.value)} className={inputCls} placeholder="10-Page Setup Guide" />
           </Field>
@@ -258,17 +275,17 @@ export default function AdminPage() {
             <FileInput file={pdf} onChange={setPdf} accept="application/pdf" hint="The downloadable PDF users get after signing in" />
           </Field>
 
-          <div className="h-px bg-black/8" />
+          <div className="h-px bg-ink/10" />
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Roadmaps</h3>
-            <button type="button" onClick={() => setRoadmaps((p) => [...p, { ...emptyRoadmap }])} className="btn-secondary text-xs px-3 py-1.5"><Plus className="w-3.5 h-3.5" /> Add</button>
+            <h3 className="font-display font-semibold">Roadmaps</h3>
+            <button type="button" onClick={() => setRoadmaps((p) => [...p, { ...emptyRoadmap }])} className="btn-yellow text-xs px-3 py-1.5"><Plus className="w-3.5 h-3.5" /> Add</button>
           </div>
           {roadmaps.map((rm, i) => (
-            <div key={i} className="rounded-14 border border-black/10 p-4 space-y-3 bg-white/40">
+            <div key={i} className="rounded-2xl border-2 border-ink/20 p-4 space-y-3 bg-paper">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted">Roadmap {i + 1}</span>
+                <span className="text-xs font-bold text-muted uppercase tracking-wide">Roadmap {i + 1}</span>
                 {roadmaps.length > 1 && (
-                  <button type="button" onClick={() => setRoadmaps((p) => p.filter((_, idx) => idx !== i))} className="text-red-500 text-xs">Remove</button>
+                  <button type="button" onClick={() => setRoadmaps((p) => p.filter((_, idx) => idx !== i))} className="text-biz-pink text-xs font-semibold">Remove</button>
                 )}
               </div>
               <input value={rm.name} onChange={(e) => updateRoadmap(i, 'name', e.target.value)} className={inputCls} placeholder="Weekend MVP (30 days)" />
@@ -284,7 +301,7 @@ export default function AdminPage() {
           ))}
 
           {msg && (
-            <p className={`text-sm flex items-center gap-2 ${msg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>
+            <p className={`text-sm flex items-center gap-2 ${msg.type === 'ok' ? 'text-biz-green' : 'text-biz-pink'}`}>
               {msg.type === 'ok' && <CheckCircle2 className="w-4 h-4" />}{msg.text}
             </p>
           )}
@@ -296,13 +313,13 @@ export default function AdminPage() {
         {/* Sidebar: reels + submissions */}
         <div className="space-y-8">
           <div className="glass-card p-6">
-            <h2 className="font-display font-semibold mb-4">Published reels ({reels.length})</h2>
+            <h2 className="font-display font-semibold mb-4 flex items-center gap-2"><Flame className="w-4 h-4 text-biz-orange" /> Published reels ({reels.length})</h2>
             <div className="space-y-2 max-h-80 overflow-auto">
               {reels.length === 0 && <p className="text-sm text-muted">None yet.</p>}
               {reels.map((r) => (
-                <div key={r.id} className="flex items-center justify-between gap-2 text-sm py-2 border-b border-black/5 last:border-0">
+                <div key={r.id} className="flex items-center justify-between gap-2 text-sm py-2 border-b border-ink/5 last:border-0">
                   <Link href={`/reels/${r.slug}`} className="truncate hover:text-accent" target="_blank">{r.title}</Link>
-                  <button onClick={() => handleDelete(r.id, r.title)} aria-label={`Delete ${r.title}`} className="text-muted hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => handleDelete(r.id, r.title)} aria-label={`Delete ${r.title}`} className="text-muted hover:text-biz-pink shrink-0 transition-colors"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
@@ -310,7 +327,7 @@ export default function AdminPage() {
 
           <div className="glass-card p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display font-semibold flex items-center gap-2"><Inbox className="w-4 h-4" /> Submissions ({submissions.length})</h2>
+              <h2 className="font-display font-semibold flex items-center gap-2"><Inbox className="w-4 h-4 text-biz-purple" /> Submissions ({submissions.length})</h2>
               {submissions.length > 0 && (
                 <button onClick={exportSubmissions} className="btn-yellow text-xs px-3 py-1.5" title="Download all submissions as a spreadsheet (opens in Excel)">
                   <FileSpreadsheet className="w-3.5 h-3.5" /> Export
@@ -320,8 +337,8 @@ export default function AdminPage() {
             <div className="space-y-3 max-h-80 overflow-auto">
               {submissions.length === 0 && <p className="text-sm text-muted">No submissions yet.</p>}
               {submissions.map((s) => (
-                <div key={s.id} className="text-sm border-b border-black/5 last:border-0 pb-3">
-                  <p className="font-medium">{s.title}</p>
+                <div key={s.id} className="text-sm border-b border-ink/5 last:border-0 pb-3">
+                  <p className="font-semibold text-ink">{s.title}</p>
                   {s.description && <p className="text-muted text-xs mt-1 line-clamp-2">{s.description}</p>}
                   {s.email && <p className="text-accent text-xs mt-1">{s.email}</p>}
                 </div>
@@ -334,14 +351,14 @@ export default function AdminPage() {
   )
 }
 
-const inputCls = 'w-full px-3 py-2.5 rounded-14 border border-black/10 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all'
+const inputCls = 'w-full px-4 py-2.5 rounded-xl border-2 border-ink/20 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow focus:border-ink transition-all hover:border-ink/50'
 
 function StatTile({ icon: Icon, label, value, tint }: { icon: React.ComponentType<{ className?: string }>; label: string; value: number; tint: string }) {
   return (
     <div className={`glass-card p-5 relative overflow-hidden ${tint}`}>
       <Icon className="w-5 h-5 text-ink mb-3" aria-hidden="true" />
-      <p className="text-3xl font-bold tracking-tight"><CountUp value={value} /></p>
-      <p className="text-sm text-muted mt-0.5">{label}</p>
+      <p className="text-3xl font-bold font-display tracking-tight text-ink"><CountUp value={value} /></p>
+      <p className="text-sm text-muted mt-0.5 font-medium">{label}</p>
     </div>
   )
 }
@@ -361,7 +378,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-sm font-medium mb-2">{label}{required && <span className="text-accent"> *</span>}</span>
+      <span className="block text-sm font-semibold mb-2 text-ink">{label}{required && <span className="text-biz-pink"> *</span>}</span>
       {children}
     </label>
   )
@@ -373,9 +390,9 @@ function FileInput({ file, onChange, accept, hint }: { file: File | null; onChan
       <input
         type="file" accept={accept}
         onChange={(e) => onChange(e.target.files?.[0] ?? null)}
-        className="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-white hover:file:bg-accent-hover file:cursor-pointer cursor-pointer"
+        className="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-ink file:text-white hover:file:bg-ink/80 file:cursor-pointer cursor-pointer"
       />
-      {file ? <p className="text-xs text-green-600 mt-1">Selected: {file.name}</p> : hint ? <p className="text-xs text-muted mt-1">{hint}</p> : null}
+      {file ? <p className="text-xs text-biz-green font-semibold mt-1">✓ Selected: {file.name}</p> : hint ? <p className="text-xs text-muted mt-1">{hint}</p> : null}
     </div>
   )
 }

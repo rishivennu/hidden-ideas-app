@@ -6,10 +6,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
+import { PHONE_ACCESS_KEY } from './AuthPanel'
 
 // Paths that are always public — no login needed.
 const PUBLIC = ['/login', '/signup', '/auth', '/terms', '/privacy', '/admin']
 const isPublic = (p: string) => PUBLIC.some(pub => p === pub || p.startsWith(pub + '/'))
+
+// Returns true if the user has granted themselves phone-number access (no Supabase session needed)
+function hasPhoneAccess(): boolean {
+  try { return !!localStorage.getItem(PHONE_ACCESS_KEY) } catch { return false }
+}
 
 // Full-site auth gate. Renders an overlay over {children} while session state
 // is loading, then either lets the user through or shows a branded sign-in
@@ -21,14 +27,17 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<'loading' | 'authed' | 'unauthed'>('loading')
 
   useEffect(() => {
-    // Initial session check
+    // Check phone-access flag first (instant, no network)
+    if (hasPhoneAccess()) { setStatus('authed'); return }
+
+    // Initial Supabase session check
     supabase.auth.getSession().then(({ data }) => {
       setStatus(data.session ? 'authed' : 'unauthed')
     })
 
     // Stay in sync on sign-in / sign-out events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setStatus(session ? 'authed' : 'unauthed')
+      setStatus(session || hasPhoneAccess() ? 'authed' : 'unauthed')
     })
     return () => subscription.unsubscribe()
   }, [])

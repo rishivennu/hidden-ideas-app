@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabaseClient'
 import AuthPanel from './AuthPanel'
+import { PHONE_ACCESS_KEY } from './AuthPanel'
 import Footer from './Footer'
 
 interface Props { mode: 'login' | 'signup' }
@@ -16,12 +17,15 @@ export default function AuthPageClient({ mode }: Props) {
   const params  = useSearchParams()
   const next    = params.get('next') ?? '/'
 
-  // If already signed in, bounce to home
+  // If already signed in (Supabase session OR phone-access flag), bounce to destination
   useEffect(() => {
+    try {
+      if (localStorage.getItem(PHONE_ACCESS_KEY)) { router.replace(next); return }
+    } catch {}
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) router.replace(next)
     })
-  }, [router])
+  }, [router, next])
 
   return (
     <div className="min-h-screen flex flex-col bg-paper">

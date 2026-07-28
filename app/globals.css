@@ -187,3 +187,41 @@ h1, h2, h3, .font-display {
     }
   }
 }
+
+/* ===== Smooth-scroll momentum + overscroll control ===== */
+body {
+  /* Prevents jarring rubber-band bounce at page top/bottom on non-iOS */
+  overscroll-behavior-y: contain;
+}
+
+/* ===== GPU-layer hints for interactive components ===== */
+/* Only activate will-change on capable pointer devices to avoid GPU memory waste */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-yellow {
+    will-change: transform;
+  }
+  .reel-card,
+  .roadmap-card {
+    will-change: transform, box-shadow;
+  }
+}
+
+/* ===== Link & button tap feedback ===== */
+a, button, [role="button"] {
+  touch-action: manipulation; /* removes 300ms tap delay on mobile */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== Framer-motion layout shift prevention ===== */
+[data-framer-component-type] {
+  backface-visibility: hidden;
+}
+
+/* ===== Focus ring quality ===== */
+:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
