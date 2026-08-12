@@ -22,6 +22,10 @@ const config: Config = {
         },
         accent: { DEFAULT: '#2E5BFF', hover: '#1E42D6' },
         muted: '#5B5B52',
+        // Neutral surface steps. Several components already used bg-bg-200 /
+        // bg-bg-300, which silently rendered as nothing because the tokens
+        // were never defined.
+        bg: { 100: '#FFFDF5', 200: '#F4F1E6', 300: '#E7E3D4' },
       },
       borderRadius: { '14': '14px', '20': '20px', '28': '28px' },
       boxShadow: {
@@ -39,11 +43,17 @@ const config: Config = {
         fadeIn: { from: { opacity: '0', transform: 'translateY(8px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
         floaty: { '0%,100%': { transform: 'translateY(0) rotate(var(--tw-rotate,0))' }, '50%': { transform: 'translateY(-10px) rotate(var(--tw-rotate,0))' } },
         marquee: { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-50%)' } },
+        shimmer: { '0%,100%': { opacity: '1' }, '50%': { opacity: '0.55' } },
+        spinSlow: { to: { transform: 'rotate(360deg)' } },
+        stamp: { '0%': { opacity: '0', transform: 'scale(2.4) rotate(-18deg)' }, '60%': { opacity: '1', transform: 'scale(0.94) rotate(-8deg)' }, '100%': { opacity: '1', transform: 'scale(1) rotate(-8deg)' } },
       },
       animation: {
         fadeIn: 'fadeIn 420ms cubic-bezier(0.2,0.8,0.2,1) both',
         floaty: 'floaty 5s ease-in-out infinite',
         marquee: 'marquee 26s linear infinite',
+        shimmer: 'shimmer 1.6s ease-in-out infinite',
+        spinSlow: 'spinSlow 7s linear infinite',
+        stamp: 'stamp 520ms cubic-bezier(0.2,1.4,0.3,1) both',
       },
     },
   },

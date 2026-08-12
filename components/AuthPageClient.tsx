@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabaseClient'
 import AuthPanel from './AuthPanel'
-import { PHONE_ACCESS_KEY } from './AuthPanel'
+import { PHONE_ACCESS_KEY, GUEST_ACCESS_KEY } from './AuthPanel'
 import Footer from './Footer'
 
 interface Props { mode: 'login' | 'signup' }
@@ -27,6 +27,15 @@ export default function AuthPageClient({ mode }: Props) {
     })
   }, [router, next])
 
+  // Let visitors into the site without an account (their choice).
+  function continueAsGuest() {
+    try {
+      localStorage.setItem(GUEST_ACCESS_KEY, '1')
+      window.dispatchEvent(new Event('biz:phone-access'))
+    } catch {}
+    router.replace(next)
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-paper">
       {/* Minimal brand header */}
@@ -42,7 +51,7 @@ export default function AuthPageClient({ mode }: Props) {
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
+      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center px-4 py-12">
         <motion.div
           initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }}
           transition={{ duration:0.36, ease:[0.22,1,0.36,1] }}
@@ -76,6 +85,16 @@ export default function AuthPageClient({ mode }: Props) {
             <Link href="/terms" className="underline hover:text-ink">Terms</Link> &amp;{' '}
             <Link href="/privacy" className="underline hover:text-ink">Privacy Policy</Link>.
           </p>
+
+          <div className="text-center mt-5">
+            <button
+              type="button"
+              onClick={continueAsGuest}
+              className="text-sm font-semibold text-muted hover:text-ink underline underline-offset-4 decoration-2 decoration-ink/20 hover:decoration-biz-pink transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow rounded px-1"
+            >
+              Skip — continue without an account →
+            </button>
+          </div>
         </motion.div>
       </main>
 

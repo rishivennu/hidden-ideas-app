@@ -33,12 +33,114 @@ export async function GET() {
   const admin = createAdminSupabaseClient()
   const [{ data: reels }, { data: submissions }] = await Promise.all([
     admin.from('reels').select('id, title, slug, published, created_at').order('created_at', { ascending: false }),
-    admin.from('submissions').select('*').order('created_at', { ascending: false }).limit(50),
+    admin.from('submissions').select('*').order('created_at', { ascending: false }).limit(200),
   ])
 
   const analytics = await getAnalytics(admin)
+  const users = await getUsers(admin, submissions ?? [])
 
-  return NextResponse.json({ reels: reels ?? [], submissions: submissions ?? [], analytics })
+  return NextResponse.json({
+    reels: reels ?? [],
+    submissions: (submissions ?? []).slice(0, 50),
+    analytics,
+    users,
+  })
+}
+
+// -- Registered users -------------------------------------------------------
+// Reads auth.users with the service-role key, which is the ONLY way to see
+// Google / email sign-ups: they never touch a public table, which is exactly
+// why the dashboard used to show nothing for them. Phone-gate visitors have no
+// auth record at all (AuthPanel grants access via localStorage and logs a row
+// in `submissions`), so those are folded in here too for one honest total.
+async function getUsers(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  submissions: { id: string; title: string; created_at: string }[],
+) {
+  type Row = {
+    id: string
+    label: string
+    name: string | null
+    avatar: string | null
+    provider: string
+    created_at: string
+    last_sign_in_at: string | null
+    verified: boolean
+  }
+
+  const rows: Row[] = []
+  let authError: string | null = null
+
+  // 1. Real Supabase auth users (Google + email + anything else enabled)
+  try {
+    const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 })
+    if (error) {
+      authError = error.message
+    } else {
+      for (const u of data.users) {
+        const identities = u.identities ?? []
+        const provider =
+          (u.app_metadata?.provider as string | undefined) ??
+          identities[0]?.provider ??
+          'email'
+        const meta = (u.user_metadata ?? {}) as Record<string, unknown>
+        rows.push({
+          id: u.id,
+          label: u.email ?? u.phone ?? '(no email)',
+          name: (meta.full_name as string) ?? (meta.name as string) ?? null,
+          avatar: (meta.avatar_url as string) ?? (meta.picture as string) ?? null,
+          provider,
+          created_at: u.created_at,
+          last_sign_in_at: u.last_sign_in_at ?? null,
+          verified: Boolean(u.email_confirmed_at ?? u.confirmed_at),
+        })
+      }
+    }
+  } catch (err) {
+    authError = err instanceof Error ? err.message : 'listUsers failed'
+  }
+
+  // 2. Phone-gate visitors, recovered from the submissions log
+  const seenPhones = new Set<string>()
+  for (const s of submissions) {
+    const m = /^Mobile signup:\s*([+]?[0-9]{6,15})/.exec(s.title ?? '')
+    if (!m) continue
+    const phone = m[1]
+    if (seenPhones.has(phone)) continue
+    seenPhones.add(phone)
+    rows.push({
+      id: 'phone:' + s.id,
+      label: phone,
+      name: null,
+      avatar: null,
+      provider: 'phone',
+      created_at: s.created_at,
+      last_sign_in_at: null,
+      verified: false,
+    })
+  }
+
+  rows.sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+
+  const counts = { google: 0, email: 0, phone: 0, other: 0 }
+  for (const r of rows) {
+    if (r.provider === 'google') counts.google++
+    else if (r.provider === 'phone') counts.phone++
+    else if (r.provider === 'email') counts.email++
+    else counts.other++
+  }
+
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const newThisWeek = rows.filter((r) => new Date(r.created_at).getTime() >= weekAgo).length
+
+  return {
+    list: rows,
+    total: rows.length,
+    counts,
+    newThisWeek,
+    ready: authError === null,
+    error: authError,
+  }
 }
 
 // Aggregate visits + downloads for the admin infographics. Degrades to zeros

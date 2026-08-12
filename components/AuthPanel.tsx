@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Phone, Loader2, Check, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
+import { GOOGLE_AUTH_PUBLIC, googleOAuthOptions } from '@/lib/authConfig'
 
 // ── Auth providers note ────────────────────────────────────────────────────
 // PHONE: bypasses SMS entirely — grants access via localStorage flag (no Twilio needed).
-// GOOGLE: Supabase → Auth → Providers → Google → enable + paste OAuth Client ID/Secret.
+// GOOGLE: OFF by default for public visitors — see lib/authConfig.ts to re-enable.
 // EMAIL:  works out of the box — no config needed.
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -17,6 +18,17 @@ type PhaseType = 'input' | 'otp' | 'magic-sent' | 'phone-done'
 
 // localStorage key shared with AuthGate to grant phone-number access
 export const PHONE_ACCESS_KEY = 'biz:phone-access'
+
+// localStorage key for "just browsing" guest access — set when a visitor
+// dismisses the sign-in gate. Unlike PHONE_ACCESS_KEY it does NOT redirect
+// them away from /login, so they can still choose to make an account later.
+export const GUEST_ACCESS_KEY = 'biz:guest'
+
+// Which method tabs render. Google is opt-in via lib/authConfig.ts so the
+// public login page shows Email + Mobile only.
+const METHODS: Method[] = GOOGLE_AUTH_PUBLIC
+  ? ['email', 'phone', 'google']
+  : ['email', 'phone']
 
 interface Props {
   mode: AuthMode
@@ -48,7 +60,7 @@ export default function AuthPanel({ mode: initMode, onSuccess, redirectTo = '/' 
     setLoading(true); setError(null)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: cbUrl },
+      options: googleOAuthOptions(cbUrl),
     })
     if (error) { setError(error.message); setLoading(false) }
     // on success browser navigates away — loading stays true
@@ -124,7 +136,7 @@ export default function AuthPanel({ mode: initMode, onSuccess, redirectTo = '/' 
     <div className="w-full max-w-sm mx-auto">
       {/* Method tabs */}
       <div className="flex rounded-full border-2 border-ink bg-white shadow-hard-sm mb-6 p-1 gap-1">
-        {(['email','phone','google'] as Method[]).map(m => (
+        {METHODS.map(m => (
           <button key={m} onClick={() => { setMethod(m); reset() }}
             className={`flex-1 py-2 rounded-full text-xs font-bold transition-colors capitalize ${
               method===m ? 'bg-ink text-white' : 'text-ink hover:bg-yellow'
@@ -136,8 +148,8 @@ export default function AuthPanel({ mode: initMode, onSuccess, redirectTo = '/' 
 
       <AnimatePresence mode="wait">
 
-        {/* ── Google ── */}
-        {method === 'google' && (
+        {/* ── Google (hidden unless GOOGLE_AUTH_PUBLIC is on) ── */}
+        {GOOGLE_AUTH_PUBLIC && method === 'google' && (
           <motion.div key="google" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}>
             <p className="text-sm text-muted text-center mb-5">
               Use your Gmail account — no password needed.

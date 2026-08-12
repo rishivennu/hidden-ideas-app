@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/react'
 import TrackVisit from '@/components/TrackVisit'
 import FollowGate from '@/components/FollowGate'
 import AuthGate from '@/components/AuthGate'
+import IdeaRoulette from '@/components/IdeaRoulette'
 import LogoReveal from '@/components/LogoReveal'
 import './globals.css'
 
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LogoReveal />
         <AuthGate>{children}</AuthGate>
         <FollowGate />
+        <IdeaRoulette />
         <TrackVisit />
         <Analytics />
       </body>

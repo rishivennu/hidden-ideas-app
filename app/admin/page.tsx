@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Loader2, Plus, Trash2, Upload, LogOut, Inbox, CheckCircle2, Eye, Download, BarChart3, Flame, FileSpreadsheet, AlertCircle } from 'lucide-react'
+import { Loader2, Plus, Trash2, Upload, LogOut, Inbox, CheckCircle2, Eye, Download, BarChart3, Flame, FileSpreadsheet, AlertCircle, Users as UsersIcon, Smartphone, Mail, Chrome } from 'lucide-react'
 import CountUp from '@/components/CountUp'
 import MiniBarChart from '@/components/MiniBarChart'
 import Header from '@/components/Header'
@@ -10,11 +10,30 @@ import Footer from '@/components/Footer'
 import ModalAuth from '@/components/ModalAuth'
 import { supabase } from '@/lib/supabaseClient'
 import { downloadCsv } from '@/lib/exportCsv'
+import { GOOGLE_AUTH_ADMIN } from '@/lib/authConfig'
 
 interface ReelRow { id: string; title: string; slug: string; published: boolean; created_at: string }
 interface Submission { id: string; title: string; description: string | null; email: string | null; status: string; created_at: string }
 interface RoadmapDraft { name: string; duration_days: string; cost_estimate: string; difficulty: string; steps: string }
 interface Analytics { totalVisits: number; totalDownloads: number; series: { date: string; visits: number; downloads: number }[]; topIdeas: { slug: string; count: number }[]; ready: boolean }
+interface AdminUser {
+  id: string
+  label: string
+  name: string | null
+  avatar: string | null
+  provider: string
+  created_at: string
+  last_sign_in_at: string | null
+  verified: boolean
+}
+interface UsersPayload {
+  list: AdminUser[]
+  total: number
+  counts: { google: number; email: number; phone: number; other: number }
+  newThisWeek: number
+  ready: boolean
+  error: string | null
+}
 
 const emptyRoadmap: RoadmapDraft = { name: '', duration_days: '', cost_estimate: '', difficulty: '3', steps: '' }
 
@@ -24,6 +43,7 @@ export default function AdminPage() {
   const [reels, setReels] = useState<ReelRow[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [users, setUsers] = useState<UsersPayload | null>(null)
 
   // form state
   const [title, setTitle] = useState('')
@@ -47,6 +67,7 @@ export default function AdminPage() {
     setReels(data.reels)
     setSubmissions(data.submissions)
     setAnalytics(data.analytics ?? null)
+    setUsers(data.users ?? null)
     setAuthState('ok')
   }, [])
 
@@ -125,6 +146,20 @@ export default function AdminPage() {
     downloadCsv(`biz-submissions-${stamp}.csv`, headers, rows)
   }
 
+  function exportUsers() {
+    const headers = ['Name', 'Email or phone', 'Signed up with', 'Verified', 'Joined', 'Last seen']
+    const rows = (users?.list ?? []).map((u) => [
+      u.name ?? '',
+      u.label,
+      u.provider,
+      u.verified ? 'yes' : 'no',
+      new Date(u.created_at).toLocaleString(),
+      u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : '',
+    ])
+    const stamp = new Date().toISOString().slice(0, 10)
+    downloadCsv('biz-users-' + stamp + '.csv', headers, rows)
+  }
+
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Delete "${title}"? This removes its guide and roadmaps too.`)) return
     const res = await fetch(`/api/admin?id=${id}`, { method: 'DELETE' })
@@ -144,7 +179,7 @@ export default function AdminPage() {
           <p className="text-muted mb-8">Sign in with an authorized admin account to manage content.</p>
           <button onClick={() => setShowAuth(true)} className="btn-primary">Sign in</button>
         </div>
-        <ModalAuth open={showAuth} onClose={() => setShowAuth(false)} onSuccess={() => { setShowAuth(false); load() }} title="Admin sign in" subtitle="Only authorized emails can manage content." />
+        <ModalAuth open={showAuth} onClose={() => setShowAuth(false)} onSuccess={() => { setShowAuth(false); load() }} title="Admin sign in" subtitle="Only authorized emails can manage content." allowGoogle={GOOGLE_AUTH_ADMIN} />
       </Shell>
     )
   }
@@ -207,7 +242,8 @@ export default function AdminPage() {
           </div>
         )}
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <StatTile icon={UsersIcon} label="Registered users" value={users?.total ?? 0} tint="bg-biz-pink/20" />
           <StatTile icon={Eye} label="Total visits" value={analytics?.totalVisits ?? 0} tint="bg-biz-sky/40" />
           <StatTile icon={Download} label="Roadmap downloads" value={analytics?.totalDownloads ?? 0} tint="bg-biz-purple/20" />
           <StatTile icon={Inbox} label="Idea submissions" value={submissions.length} tint="bg-yellow" />
@@ -234,6 +270,92 @@ export default function AdminPage() {
                 ))}
               </ol>
             ) : <p className="text-sm text-muted py-8 text-center">No downloads yet.</p>}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Users ──────────────────────────────────────────── */}
+      <section className="mb-10" aria-labelledby="users-heading">
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <UsersIcon className="w-5 h-5 text-ink" />
+            <h2 id="users-heading" className="text-lg font-display font-semibold">
+              Users {users ? '(' + users.total + ')' : ''}
+            </h2>
+            {users && users.newThisWeek > 0 && (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-biz-green/20 border-2 border-ink">
+                +{users.newThisWeek} this week
+              </span>
+            )}
+          </div>
+          {users && users.list.length > 0 && (
+            <button onClick={exportUsers} className="btn-yellow text-xs px-3 py-1.5"
+              title="Download every user as a spreadsheet">
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Export
+            </button>
+          )}
+        </div>
+
+        {users && !users.ready && (
+          <div className="biz-card bg-yellow/30 p-4 mb-6 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-ink shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-ink mb-1">Can&apos;t read the user list</p>
+              <p className="text-ink/70">
+                Google and email sign-ups live in Supabase&apos;s protected <code className="bg-ink/10 px-1.5 py-0.5 rounded text-xs">auth.users</code> table,
+                which needs the service-role key. Add{' '}
+                <code className="bg-ink/10 px-1.5 py-0.5 rounded text-xs">SUPABASE_SERVICE_ROLE_KEY</code>{' '}
+                in Vercel → Settings → Environment Variables (find it in Supabase → Project Settings → API), then redeploy.
+              </p>
+              {users.error && <p className="text-ink/50 text-xs mt-2">Reported: {users.error}</p>}
+            </div>
+          </div>
+        )}
+
+        <div className="glass-card overflow-hidden">
+          {/* Provider breakdown */}
+          <div className="flex flex-wrap gap-2 px-6 py-4 border-b-2 border-ink/10">
+            <ProviderChip icon={Chrome} label="Google" count={users?.counts.google ?? 0} tint="bg-biz-sky/40" />
+            <ProviderChip icon={Mail} label="Email" count={users?.counts.email ?? 0} tint="bg-yellow" />
+            <ProviderChip icon={Smartphone} label="Mobile" count={users?.counts.phone ?? 0} tint="bg-biz-green/25" />
+            {(users?.counts.other ?? 0) > 0 && (
+              <ProviderChip icon={UsersIcon} label="Other" count={users!.counts.other} tint="bg-biz-purple/20" />
+            )}
+          </div>
+
+          <div className="max-h-[26rem] overflow-auto" tabIndex={0} role="region" aria-label="User list">
+            {!users || users.list.length === 0 ? (
+              <p className="text-sm text-muted px-6 py-10 text-center">
+                No users yet. Anyone who signs in with Google, email or a mobile number shows up here.
+              </p>
+            ) : (
+              <ul className="divide-y divide-ink/10">
+                {users.list.map((u) => (
+                  <li key={u.id} className="flex items-center gap-3 px-6 py-3">
+                    <UserAvatar user={u} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-ink truncate">
+                        {u.name ?? u.label}
+                      </p>
+                      {u.name && <p className="text-xs text-muted truncate">{u.label}</p>}
+                    </div>
+                    <span className={
+                      'shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full border-2 border-ink ' +
+                      (u.provider === 'google' ? 'bg-biz-sky/50'
+                        : u.provider === 'phone' ? 'bg-biz-green/30'
+                        : u.provider === 'email' ? 'bg-yellow'
+                        : 'bg-biz-purple/25')
+                    }>
+                      {u.provider === 'phone' ? 'Mobile' : u.provider === 'google' ? 'Google' : u.provider === 'email' ? 'Email' : u.provider}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted w-24 text-right hidden sm:block"
+                      title={'Joined ' + new Date(u.created_at).toLocaleString()}>
+                      {timeAgo(u.created_at)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </section>
@@ -292,7 +414,7 @@ export default function AdminPage() {
               <div className="grid grid-cols-3 gap-2">
                 <input value={rm.duration_days} onChange={(e) => updateRoadmap(i, 'duration_days', e.target.value)} type="number" className={inputCls} placeholder="Days" />
                 <input value={rm.cost_estimate} onChange={(e) => updateRoadmap(i, 'cost_estimate', e.target.value)} className={inputCls} placeholder="$200–$500" />
-                <select value={rm.difficulty} onChange={(e) => updateRoadmap(i, 'difficulty', e.target.value)} className={inputCls}>
+                <select aria-label={`Roadmap ${i + 1} difficulty`} value={rm.difficulty} onChange={(e) => updateRoadmap(i, 'difficulty', e.target.value)} className={inputCls}>
                   {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>Difficulty {n}</option>)}
                 </select>
               </div>
@@ -366,6 +488,47 @@ function StatTile({ icon: Icon, label, value, tint }: { icon: React.ComponentTyp
       <p className="text-sm text-muted mt-0.5 font-medium">{label}</p>
     </div>
   )
+}
+
+function ProviderChip({ icon: Icon, label, count, tint }: { icon: React.ComponentType<{ className?: string }>; label: string; count: number; tint: string }) {
+  return (
+    <span className={'inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border-2 border-ink ' + tint}>
+      <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+      {label}
+      <span className="text-ink/60">{count}</span>
+    </span>
+  )
+}
+
+function UserAvatar({ user }: { user: AdminUser }) {
+  const initial = (user.name ?? user.label ?? '?').trim().charAt(0).toUpperCase()
+  if (user.avatar) {
+    return (
+      <img src={user.avatar} alt=""
+        referrerPolicy="no-referrer"
+        className="w-9 h-9 shrink-0 rounded-full border-2 border-ink object-cover bg-white" />
+    )
+  }
+  return (
+    <span aria-hidden="true"
+      className="w-9 h-9 shrink-0 rounded-full border-2 border-ink bg-yellow grid place-items-center text-sm font-bold text-ink">
+      {initial}
+    </span>
+  )
+}
+
+// Compact "3d ago" style stamp. Falls back to a date past a month.
+function timeAgo(iso: string): string {
+  const then = new Date(iso).getTime()
+  if (Number.isNaN(then)) return ''
+  const mins = Math.floor((Date.now() - then) / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return mins + 'm ago'
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return hrs + 'h ago'
+  const days = Math.floor(hrs / 24)
+  if (days < 30) return days + 'd ago'
+  return new Date(iso).toLocaleDateString()
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
