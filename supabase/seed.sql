@@ -1,15 +1,60 @@
 -- Sample data — run after migration to test locally
 
 -- Sample reel
-INSERT INTO reels (id, title, slug, description, duration_seconds, published)
+--
+-- IMPORTANT: video_url and thumbnail_url were missing from this insert, which is
+-- why the Reels page rendered static placeholders and never played anything.
+-- The cards autoplay only when video_url points at a real file.
+--
+-- Where the files must live: Supabase Dashboard -> Storage -> create a PUBLIC
+-- bucket named "reels", upload the mp4 and the poster jpg, then use the
+-- "Copy URL" value. It looks like:
+--   https://<your-project-ref>.supabase.co/storage/v1/object/public/reels/<file>
+-- Any other host is blocked by the Content-Security-Policy in next.config.mjs.
+--
+-- Replace <your-project-ref> below with your own project ref before running.
+INSERT INTO reels (id, title, slug, description, thumbnail_url, video_url, duration_seconds, published)
 VALUES (
   'a1000000-0000-0000-0000-000000000001',
   'Micro‑Fulfillment Kiosk — Weekend MVP',
   'micro-fulfillment-kiosk',
   'Turn unused retail space into a micro-fulfillment hub in 30 days. A lean model with $200–$500 startup cost and $2k–$8k/month potential.',
+  'https://<your-project-ref>.supabase.co/storage/v1/object/public/reels/micro-fulfillment-kiosk.jpg',
+  'https://<your-project-ref>.supabase.co/storage/v1/object/public/reels/micro-fulfillment-kiosk.mp4',
   47,
   true
 );
+
+-- Two more reels so you can see autoplay hand over from card to card as you scroll.
+INSERT INTO reels (id, title, slug, description, thumbnail_url, video_url, duration_seconds, published)
+VALUES
+(
+  'a1000000-0000-0000-0000-000000000002',
+  'Rent‑a‑Chair Salon Booth',
+  'rent-a-chair-salon-booth',
+  'Sublet salon chairs to freelance stylists on a weekly rate. Near-zero inventory, cash up front.',
+  'https://<your-project-ref>.supabase.co/storage/v1/object/public/reels/rent-a-chair-salon-booth.jpg',
+  'https://<your-project-ref>.supabase.co/storage/v1/object/public/reels/rent-a-chair-salon-booth.mp4',
+  52,
+  true
+),
+(
+  'a1000000-0000-0000-0000-000000000003',
+  'Society Laundry Pickup Round',
+  'society-laundry-pickup-round',
+  'One scooter, one apartment block, twice-weekly pickups. Route density beats marketing spend.',
+  'https://<your-project-ref>.supabase.co/storage/v1/object/public/reels/society-laundry-pickup-round.jpg',
+  'https://<your-project-ref>.supabase.co/storage/v1/object/public/reels/society-laundry-pickup-round.mp4',
+  41,
+  true
+);
+
+-- Already have reels rows but nothing plays? Check which ones are missing a file:
+--   select slug, published, video_url from reels order by created_at desc;
+-- Then backfill one, for example:
+--   update reels
+--      set video_url = 'https://<your-project-ref>.supabase.co/storage/v1/object/public/reels/my-clip.mp4'
+--    where slug = 'micro-fulfillment-kiosk';
 
 -- Sample guide
 INSERT INTO guides (id, reel_id, title, file_path, summary, is_gated)

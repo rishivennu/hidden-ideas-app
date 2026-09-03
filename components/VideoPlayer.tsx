@@ -1,7 +1,8 @@
-'use client'
+"use client"
 
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Play, Pause, Volume2, VolumeX } from 'lucide-react'
+import { useReducedMotion } from 'framer-motion'
+import { Play, Pause, Volume2, VolumeX, AlertTriangle } from 'lucide-react'
 
 interface VideoPlayerProps {
   src: string
@@ -11,27 +12,87 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({ src, poster, title }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const userPausedRef = useRef(false)
+  const reduceMotion = useReducedMotion()
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(true)
   const [loaded, setLoaded] = useState(false)
+  const [failed, setFailed] = useState(false)
 
-  // Autoplay muted on mount + when the source becomes playable (browser policy
-  // requires muted for programmatic autoplay). Retries on canplay for slow links.
+  /**
+   * Autoplay muted while the player is on screen, pause when it scrolls away.
+   * Muted is non-negotiable: browsers refuse programmatic play() with audio.
+   * userPausedRef keeps an explicit pause sticky so scrolling does not override it.
+   */
   useEffect(() => {
-    const v = videoRef.current
-    if (!v) return
-    v.muted = true
-    const tryPlay = () => { v.play().then(() => setPlaying(true)).catch(() => {}) }
-    tryPlay()
-    v.addEventListener('canplay', tryPlay)
-    return () => v.removeEventListener('canplay', tryPlay)
-  }, [src])
+    const video = videoRef.current
+    const wrap = wrapRef.current
+    if (!video || !wrap) return
+
+    video.muted = true
+    userPausedRef.current = false
+
+    // preload="auto" means the browser can finish (or fail) loading before React
+    // hydrates, so the loadedmetadata/error events are missed. Read the element
+    // directly instead of waiting for events that already happened.
+    if (video.error) { setLoaded(true); setFailed(true) }
+    else { setFailed(false); if (video.readyState >= 1) setLoaded(true) }
+
+    const play = () => {
+      if (reduceMotion || userPausedRef.current || document.hidden) return
+      video.play().then(() => setPlaying(true)).catch(() => {})
+    }
+
+    let visible = true
+    if (typeof IntersectionObserver !== 'undefined') {
+      visible = false
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            visible = entry.isIntersecting
+            if (visible) play()
+            else if (!video.paused) video.pause()
+          }
+        },
+        { threshold: 0.5 }
+      )
+      observer.observe(wrap)
+
+      // Retry once the browser actually has frames — slow links miss the first attempt.
+      const onCanPlay = () => { if (visible) play() }
+      const onVisibility = () => { if (document.hidden) video.pause(); else onCanPlay() }
+      video.addEventListener('canplay', onCanPlay)
+      document.addEventListener('visibilitychange', onVisibility)
+
+      return () => {
+        observer.disconnect()
+        video.removeEventListener('canplay', onCanPlay)
+        document.removeEventListener('visibilitychange', onVisibility)
+        video.pause()
+      }
+    }
+
+    play()
+    const onCanPlay = () => play()
+    video.addEventListener('canplay', onCanPlay)
+    return () => {
+      video.removeEventListener('canplay', onCanPlay)
+      video.pause()
+    }
+  }, [src, reduceMotion])
 
   const togglePlay = useCallback(() => {
     const v = videoRef.current
     if (!v) return
-    if (v.paused) { v.play(); setPlaying(true) }
-    else { v.pause(); setPlaying(false) }
+    if (v.paused) {
+      userPausedRef.current = false
+      v.play().then(() => setPlaying(true)).catch(() => {})
+    } else {
+      userPausedRef.current = true
+      v.pause()
+      setPlaying(false)
+    }
   }, [])
 
   const toggleMute = useCallback(() => {
@@ -48,27 +109,41 @@ export default function VideoPlayer({ src, poster, title }: VideoPlayerProps) {
 
   return (
     <div
+      ref={wrapRef}
       className="relative w-full overflow-hidden rounded-20 bg-black select-none aspect-9-16"
       role="region"
       aria-label={`Video: ${title}`}
+      data-playing={playing ? 'true' : 'false'}
     >
-      {/* Loading shimmer */}
-      {!loaded && (
+      {/* Loading shimmer — cleared on metadata OR on error, so it can never hang forever */}
+      {!loaded && !failed && (
         <div className="absolute inset-0 bg-bg-200 animate-shimmer" aria-hidden="true" />
+      )}
+
+      {failed && (
+        <div className="absolute inset-0 grid place-items-center bg-bg-200 p-6 text-center" role="alert">
+          <div>
+            <AlertTriangle className="w-7 h-7 mx-auto text-ink" aria-hidden="true" />
+            <p className="font-display font-semibold mt-2">This video would not load</p>
+            <p className="text-sm text-muted mt-1">
+              The file may have moved, or its host is not allowed by the site&apos;s media policy.
+            </p>
+          </div>
+        </div>
       )}
 
       <video
         ref={videoRef}
         src={src}
         poster={poster}
-        autoPlay
         playsInline
         loop
         muted={muted}
         preload="auto"
         className="w-full h-full object-cover"
         aria-label={title}
-        onLoadedMetadata={() => setLoaded(true)}
+        onLoadedMetadata={() => { setLoaded(true); setFailed(false) }}
+        onError={() => { setLoaded(true); setFailed(true) }}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
       />

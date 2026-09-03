@@ -1,10 +1,25 @@
+/**
+ * The Supabase host is derived from NEXT_PUBLIC_SUPABASE_URL so that swapping
+ * projects does not silently break images and video: next/image rejects hosts
+ * missing from remotePatterns, and the CSP below blocks any other media origin.
+ */
+const SUPABASE_HOST = (() => {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host
+  } catch {
+    return 'mvtcccmqdcvchbxsszay.supabase.co'
+  }
+})()
+
+const SUPABASE_ORIGIN = `https://${SUPABASE_HOST}`
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'mvtcccmqdcvchbxsszay.supabase.co',
+        hostname: SUPABASE_HOST,
         pathname: '/storage/v1/object/public/**',
       },
     ],
@@ -24,9 +39,9 @@ const nextConfig = {
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https://mvtcccmqdcvchbxsszay.supabase.co",
-              "media-src 'self' blob: https://mvtcccmqdcvchbxsszay.supabase.co",
-              "connect-src 'self' https://mvtcccmqdcvchbxsszay.supabase.co wss://mvtcccmqdcvchbxsszay.supabase.co",
+              `img-src 'self' data: blob: ${SUPABASE_ORIGIN}`,
+              `media-src 'self' blob: ${SUPABASE_ORIGIN}`,
+              `connect-src 'self' ${SUPABASE_ORIGIN} wss://${SUPABASE_HOST}`,
               "frame-ancestors 'none'",
             ].join('; '),
           },

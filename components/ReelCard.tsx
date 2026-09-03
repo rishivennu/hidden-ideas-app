@@ -1,9 +1,10 @@
-'use client'
+"use client"
 
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
-import { Play, Clock } from 'lucide-react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { Play, Clock, VolumeX } from 'lucide-react'
 import { cardVariants, cardTransition, hoverCard, tapCard } from '@/lib/motion'
 import type { Reel } from '@/lib/supabaseClient'
 
@@ -20,6 +21,59 @@ function formatDuration(seconds: number | null): string {
 }
 
 export default function ReelCard({ reel, index = 0 }: ReelCardProps) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
+  const reduceMotion = useReducedMotion()
+  const [playing, setPlaying] = useState(false)
+  const [videoFailed, setVideoFailed] = useState(false)
+  // A dead video_url used to leave a blank black tile; fall back to the poster/gradient.
+  const hasVideo = Boolean(reel.video_url) && !videoFailed
+
+  /**
+   * Instagram-style autoplay: an IntersectionObserver plays the muted clip once
+   * the card is mostly on screen and pauses it again on the way out, so only the
+   * visible cards ever decode frames. Autoplay must stay muted or browsers block
+   * play() outright. Users who asked for less motion get the poster frame only.
+   */
+  useEffect(() => {
+    const video = videoRef.current
+    const frame = frameRef.current
+    if (!hasVideo || !video || !frame) return
+    if (reduceMotion) return
+    if (typeof IntersectionObserver === 'undefined') return
+
+    video.muted = true
+    if (video.error) { setVideoFailed(true); return }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            video.play().catch(() => {
+              /* Autoplay can still be refused (low power mode); poster stays visible. */
+            })
+          } else if (!video.paused) {
+            video.pause()
+          }
+        }
+      },
+      { threshold: 0.55 }
+    )
+
+    observer.observe(frame)
+
+    const onVisibility = () => {
+      if (document.hidden) video.pause()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      observer.disconnect()
+      document.removeEventListener('visibilitychange', onVisibility)
+      video.pause()
+    }
+  }, [hasVideo, reduceMotion, reel.video_url])
+
   return (
     <motion.article
       variants={cardVariants}
@@ -33,9 +87,31 @@ export default function ReelCard({ reel, index = 0 }: ReelCardProps) {
       aria-label={`View roadmaps for: ${reel.title}`}
     >
       <Link href={`/reels/${reel.slug}`} className="block" tabIndex={0}>
-        {/* Thumbnail */}
-        <div className="relative aspect-9-16 overflow-hidden bg-bg-200">
-          {reel.thumbnail_url ? (
+        {/* Preview — autoplaying clip when we have a file, thumbnail otherwise */}
+        <div
+          ref={frameRef}
+          className="relative aspect-9-16 overflow-hidden bg-bg-200"
+          data-reel-preview={reel.slug}
+          data-playing={playing ? 'true' : 'false'}
+        >
+          {hasVideo ? (
+            <video
+              ref={videoRef}
+              src={reel.video_url ?? undefined}
+              poster={reel.thumbnail_url ?? undefined}
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              disablePictureInPicture
+              tabIndex={-1}
+              aria-hidden="true"
+              className="w-full h-full object-cover transition-transform duration-[680ms] group-hover:scale-105"
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+              onError={() => { setPlaying(false); setVideoFailed(true) }}
+            />
+          ) : reel.thumbnail_url ? (
             <Image
               src={reel.thumbnail_url}
               alt={`Thumbnail for ${reel.title}`}
@@ -52,16 +128,27 @@ export default function ReelCard({ reel, index = 0 }: ReelCardProps) {
           {/* Gradient overlay */}
           <div className="absolute inset-0 thumbnail-overlay pointer-events-none" aria-hidden="true" />
 
-          {/* Play button */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-240">
-            <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
-              <Play className="w-5 h-5 text-black ml-0.5" aria-hidden="true" />
+          {/* Play affordance — hidden while the preview is actually rolling */}
+          {!playing && (
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-240">
+              <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                <Play className="w-5 h-5 text-black ml-0.5" aria-hidden="true" />
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Muted badge — tells people the silence is deliberate */}
+          {playing && (
+            <div className="absolute top-3 left-3 glass-card px-2 py-1 flex items-center gap-1 text-ink text-xs font-medium"
+                 style={{ borderRadius: 8 }}>
+              <VolumeX className="w-3 h-3" aria-hidden="true" />
+              <span>Muted</span>
+            </div>
+          )}
 
           {/* Duration badge */}
           {reel.duration_seconds && (
-            <div className="absolute bottom-3 right-3 glass-card px-2 py-1 flex items-center gap-1 text-white text-xs font-medium"
+            <div className="absolute bottom-3 right-3 glass-card px-2 py-1 flex items-center gap-1 text-ink text-xs font-medium"
                  style={{ borderRadius: 8 }}>
               <Clock className="w-3 h-3" aria-hidden="true" />
               <span>{formatDuration(reel.duration_seconds)}</span>
