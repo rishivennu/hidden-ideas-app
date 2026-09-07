@@ -4,10 +4,13 @@ import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, useMotionTemplate, useReducedMotion } from 'framer-motion'
-import { Library, Compass, Search, Sparkles } from 'lucide-react'
+import { Library, Compass, Search, Sparkles, Map } from 'lucide-react'
 import RotatingWord from './RotatingWord'
 import Spotlight from './Spotlight'
 import MagneticButton from './MagneticButton'
+import { IDEAS } from '@/lib/demoData'
+
+const EXAMPLES = ['Cloud kitchen', 'Vending machines', 'Print-on-demand', 'Pet grooming', 'Cloud accounting']
 
 // Apple-TV style scroll zoom: a full-bleed stage (sticky, 100vh) that scales
 // DOWN into a framed card as you scroll. The card clips its own contents, so
@@ -22,6 +25,8 @@ export default function HeroZoom() {
   const radius = useTransform(scrollYProgress, [0, 1], [0, 46])
   const ringW = useTransform(scrollYProgress, [0, 0.2, 1], [0, 0, 3])
   const ring = useMotionTemplate`0 0 0 ${ringW}px #141414`
+
+  const go = (topic: string) => router.push(`/builder?topic=${encodeURIComponent(topic)}`)
 
   return (
     <section ref={ref} className="relative h-[168vh] overflow-x-clip" aria-label="Intro">
@@ -40,7 +45,7 @@ export default function HeroZoom() {
           <Floaty src="/illustrations/phone-girl.png" alt="" className="hidden md:block w-32 lg:w-44 right-[4%] bottom-[5%] -rotate-3" delay={1.1} />
 
           {/* center content — extra top padding so the badge clears the nav at rest */}
-          <div className="relative z-10 text-center px-5 max-w-3xl pt-24 sm:pt-20 lg:pt-14 pb-8">
+          <div className="relative z-10 text-center px-5 max-w-3xl pt-20 sm:pt-16 lg:pt-12 pb-8">
             <motion.span
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -48,12 +53,12 @@ export default function HeroZoom() {
               className="chip bg-white/90 backdrop-blur mb-5 shadow-hard-sm"
             >
               <Sparkles className="w-4 h-4 text-biz-pink" aria-hidden="true" />
-              AI-powered roadmaps · India-ready
+              {IDEAS.length}+ ideas · 7-part roadmaps · free
             </motion.span>
 
             <h1
               className="text-ink mb-4 font-display font-bold leading-[0.92] tracking-[-0.03em]"
-              style={{ fontSize: 'clamp(2.6rem, 8vw, 5.5rem)' }}
+              style={{ fontSize: 'clamp(2.5rem, 7.5vw, 5.25rem)' }}
               aria-label="Find the biz hiding in plain sight"
             >
               <span aria-hidden="true">
@@ -69,13 +74,13 @@ export default function HeroZoom() {
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg lg:text-xl font-medium text-ink/80 max-w-xl mx-auto mb-7">
-              Search any business, pick your niche, and get a complete, fact-checked roadmap — registration, licenses, fees in ₹, suppliers, market and timeline. Powered by Gemini.
+            <p className="text-base sm:text-lg lg:text-xl font-medium text-ink/80 max-w-xl mx-auto mb-5">
+              Type any business and get a complete, fact-checked, India-ready roadmap — registration, licenses, fees in ₹, suppliers, market and timeline. Powered by Gemini.
             </p>
 
             <form
-              onSubmit={(e) => { e.preventDefault(); if (q.trim()) router.push(`/builder?topic=${encodeURIComponent(q.trim())}`) }}
-              className="relative max-w-lg mx-auto mb-5"
+              onSubmit={(e) => { e.preventDefault(); if (q.trim()) go(q.trim()) }}
+              className="relative max-w-lg mx-auto mb-3"
               role="search"
             >
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink/60" aria-hidden="true" />
@@ -91,6 +96,21 @@ export default function HeroZoom() {
               </button>
             </form>
 
+            {/* example prompts — show what to type AND what the tool does */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-5 max-w-xl mx-auto">
+              <span className="text-sm font-semibold text-ink/55">Try:</span>
+              {EXAMPLES.map((ex) => (
+                <button
+                  key={ex}
+                  type="button"
+                  onClick={() => go(ex)}
+                  className="rounded-full border-2 border-ink/80 bg-white/70 backdrop-blur px-3 py-1 text-xs sm:text-sm font-semibold hover:bg-white hover:-translate-y-0.5 transition-all"
+                >
+                  {ex}
+                </button>
+              ))}
+            </div>
+
             <div className="flex flex-wrap items-center justify-center gap-3">
               <MagneticButton>
                 <Link href="/builder" className="btn-primary px-7 py-3.5"><Compass className="w-4 h-4" /> Build a roadmap</Link>
@@ -100,7 +120,14 @@ export default function HeroZoom() {
               </MagneticButton>
             </div>
 
-            <p className="mt-6 text-sm font-semibold text-ink/50">Scroll to explore ↓</p>
+            {/* compact 3-step mechanic — lands before anyone scrolls */}
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm font-semibold text-ink/70">
+              <span className="inline-flex items-center gap-1.5"><Search className="w-4 h-4" aria-hidden="true" /> Type a business</span>
+              <span aria-hidden="true" className="text-ink/40">→</span>
+              <span className="inline-flex items-center gap-1.5"><Sparkles className="w-4 h-4" aria-hidden="true" /> Gemini researches</span>
+              <span aria-hidden="true" className="text-ink/40">→</span>
+              <span className="inline-flex items-center gap-1.5"><Map className="w-4 h-4" aria-hidden="true" /> 7-part plan in ~10s</span>
+            </div>
           </div>
         </motion.div>
       </div>

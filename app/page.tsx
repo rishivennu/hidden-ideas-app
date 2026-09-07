@@ -10,6 +10,7 @@ import IdeaCard from '@/components/IdeaCard'
 import InfoMetrics from '@/components/InfoMetrics'
 import Reveal from '@/components/Reveal'
 import HeroZoom from '@/components/HeroZoom'
+import SampleRoadmap from '@/components/SampleRoadmap'
 import StackSection from '@/components/StackSection'
 import WeeklySpotlight from '@/components/WeeklySpotlight'
 import Testimonials from '@/components/Testimonials'
@@ -79,6 +80,8 @@ export default function HomePage() {
             ))}
           </div>
         </div>
+
+        <SampleRoadmap />
 
         {/* ===== Unmask-on-scroll: stacked sticky layers reveal one by one ===== */}
 
