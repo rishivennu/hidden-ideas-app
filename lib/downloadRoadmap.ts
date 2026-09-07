@@ -231,3 +231,137 @@ export async function downloadBuiltRoadmap(r: BuiltRoadmap) {
 
   doc.save(`${r.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-roadmap.pdf`)
 }
+
+// ---- AI (Gemini) 7-section roadmap PDF export ----
+import type { AIRoadmap } from './roadmapAI'
+
+export async function downloadAIRoadmap(r: AIRoadmap) {
+  const { jsPDF } = await import('jspdf')
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+  const W = doc.internal.pageSize.getWidth()
+  const H = doc.internal.pageSize.getHeight()
+  const M = 48
+  const CW = W - M * 2
+  const bottom = H - 60
+  let y = 0
+
+  const ensure = (need: number) => { if (y + need > bottom) { doc.addPage(); y = 60 } }
+  const para = (text: string, size = 10, color: [number, number, number] = MUTED, indent = 0) => {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(size); doc.setTextColor(...color)
+    const lines = doc.splitTextToSize(text, CW - indent)
+    ensure(lines.length * (size + 3))
+    doc.text(lines, M + indent, y)
+    y += lines.length * (size + 3)
+  }
+
+  // Header band
+  const headerH = 150
+  doc.setFillColor(...YELLOW); doc.rect(0, 0, W, headerH, 'F')
+  doc.setFillColor(...INK); doc.rect(0, headerH, W, 4, 'F')
+  doc.setTextColor(...INK); doc.setFont('helvetica', 'bold'); doc.setFontSize(30)
+  doc.text('biz', M, 52)
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9)
+  doc.text('AI BUSINESS ROADMAP', M + 46, 51)
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(19)
+  const titleLines = doc.splitTextToSize(r.title, CW)
+  doc.text(titleLines, M, 88)
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(40, 40, 40)
+  const sumLines = doc.splitTextToSize(r.summary, CW).slice(0, 2)
+  doc.text(sumLines, M, 88 + titleLines.length * 21)
+
+  // Meta strip
+  y = headerH + 34
+  const chips = [`Difficulty: ${r.difficulty}`, `Timeline: ${r.totalTimeline}`, `Est. cost: ${r.estimatedCost}`]
+  if (r.niche) chips.push(`Niche: ${r.niche}`)
+  doc.setFontSize(9.5); let cx = M
+  for (const c of chips) {
+    doc.setFont('helvetica', 'bold')
+    const cw = doc.getTextWidth(c) + 18
+    if (cx + cw > W - M) { cx = M; y += 30 }
+    doc.setDrawColor(...INK); doc.setLineWidth(1.2); doc.setFillColor(255, 255, 255)
+    doc.roundedRect(cx, y - 12, cw, 22, 11, 11, 'FD')
+    doc.setTextColor(...INK); doc.text(c, cx + 9, y + 3)
+    cx += cw + 8
+  }
+  y += 42
+
+  const heading = (n: number, t: string) => {
+    ensure(48)
+    doc.setFillColor(...INK); doc.roundedRect(M, y - 15, CW, 28, 6, 6, 'F')
+    doc.setTextColor(...YELLOW); doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5)
+    doc.text(`${n}.  ${t.toUpperCase()}`, M + 10, y + 3)
+    y += 32
+  }
+  const bullet = (text: string, label?: string) => {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10)
+    const full = label ? `${label}: ${text}` : text
+    const lines = doc.splitTextToSize(full, CW - 18)
+    ensure(lines.length * 13 + 4)
+    doc.setFillColor(...GREEN); doc.circle(M + 4, y - 3, 3, 'F')
+    doc.setTextColor(...INK); doc.text(lines, M + 14, y)
+    y += lines.length * 13 + 4
+  }
+
+  // 1. Registration
+  heading(1, 'Registration process')
+  r.registration.forEach((s, i) => { bullet(s.detail, `${i + 1}. ${s.step}`) })
+  y += 8
+
+  // 2. Licenses
+  heading(2, 'Licenses & permissions')
+  r.licenses.forEach((l) => {
+    bullet(`${l.authority}${l.cost ? ' · ' + l.cost : ''}${l.mandatory ? ' · Mandatory' : ' · Optional'}`, l.name)
+    if (l.notes) para(l.notes, 9, MUTED, 14)
+  })
+  y += 8
+
+  // 3. Fees
+  heading(3, 'Charges & fees')
+  r.fees.forEach((f) => { bullet(`${f.amount}${f.frequency ? ' (' + f.frequency + ')' : ''}`, f.item) })
+  y += 8
+
+  // 4. Suppliers
+  heading(4, 'Suppliers & manufacturers')
+  r.suppliers.forEach((s) => {
+    bullet(`${s.priceRange ?? ''}${s.whatToLookFor ? (s.priceRange ? ' — ' : '') + s.whatToLookFor : ''}`, s.category)
+    para(`IndiaMART search: "${s.indiamartQuery}"`, 9, GREEN, 14)
+  })
+  y += 8
+
+  // 5. Market & competitors
+  heading(5, 'Market insights & competitors')
+  para(r.market.overview, 10, INK)
+  if (r.market.trends.length) para('Trends: ' + r.market.trends.join(' · '), 9, MUTED)
+  y += 4
+  r.market.competitors.forEach((c) => { bullet(c.positioning, c.name) })
+  y += 8
+
+  // 6. Timeline
+  heading(6, 'Estimated timeline')
+  r.timeline.forEach((t) => {
+    bullet('', `${t.phase} — ${t.duration}`)
+    t.milestones.forEach((m) => para('• ' + m, 9.5, MUTED, 16))
+  })
+  y += 8
+
+  // 7. Challenges
+  heading(7, 'Common challenges & solutions')
+  r.challenges.forEach((c) => {
+    bullet(c.challenge)
+    para('Fix: ' + c.solution, 9.5, GREEN, 14)
+  })
+
+  // Footer
+  const pageCount = doc.getNumberOfPages()
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p)
+    doc.setDrawColor(220, 220, 220); doc.setLineWidth(1)
+    doc.line(M, H - 40, W - M, H - 40)
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...MUTED)
+    doc.text('Built with biz — AI business roadmaps. Verify licenses & fees with official sources.', M, H - 26)
+    doc.text(`Page ${p} of ${pageCount}`, W - M, H - 26, { align: 'right' })
+  }
+
+  doc.save(`${r.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}-roadmap.pdf`)
+}

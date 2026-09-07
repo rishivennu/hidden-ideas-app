@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Play, Clock, VolumeX } from 'lucide-react'
+import { Play, Clock, VolumeX, Instagram } from 'lucide-react'
 import { cardVariants, cardTransition, hoverCard, tapCard } from '@/lib/motion'
+import { isInstagramUrl, toPlayableSrc } from '@/lib/mediaUrl'
 import type { Reel } from '@/lib/supabaseClient'
 
 interface ReelCardProps {
@@ -26,14 +27,16 @@ export default function ReelCard({ reel, index = 0 }: ReelCardProps) {
   const reduceMotion = useReducedMotion()
   const [playing, setPlaying] = useState(false)
   const [videoFailed, setVideoFailed] = useState(false)
-  // A dead video_url used to leave a blank black tile; fall back to the poster/gradient.
-  const hasVideo = Boolean(reel.video_url) && !videoFailed
+
+  // Instagram URLs render as static poster cards that link to the detail page (which
+  // hosts the full embed iframe). Direct mp4 URLs autoplay on scroll.
+  const isIG = isInstagramUrl(reel.video_url)
+  const playableSrc = toPlayableSrc(reel.video_url)   // null for Instagram, mp4 for others
+  const hasVideo = Boolean(playableSrc) && !videoFailed
 
   /**
-   * Instagram-style autoplay: an IntersectionObserver plays the muted clip once
-   * the card is mostly on screen and pauses it again on the way out, so only the
-   * visible cards ever decode frames. Autoplay must stay muted or browsers block
-   * play() outright. Users who asked for less motion get the poster frame only.
+   * IntersectionObserver drives autoplay for direct mp4s only.
+   * Muted is required for browser policy compliance.
    */
   useEffect(() => {
     const video = videoRef.current
@@ -49,9 +52,7 @@ export default function ReelCard({ reel, index = 0 }: ReelCardProps) {
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            video.play().catch(() => {
-              /* Autoplay can still be refused (low power mode); poster stays visible. */
-            })
+            video.play().catch(() => {})
           } else if (!video.paused) {
             video.pause()
           }
@@ -59,14 +60,10 @@ export default function ReelCard({ reel, index = 0 }: ReelCardProps) {
       },
       { threshold: 0.55 }
     )
-
     observer.observe(frame)
 
-    const onVisibility = () => {
-      if (document.hidden) video.pause()
-    }
+    const onVisibility = () => { if (document.hidden) video.pause() }
     document.addEventListener('visibilitychange', onVisibility)
-
     return () => {
       observer.disconnect()
       document.removeEventListener('visibilitychange', onVisibility)
@@ -87,17 +84,18 @@ export default function ReelCard({ reel, index = 0 }: ReelCardProps) {
       aria-label={`View roadmaps for: ${reel.title}`}
     >
       <Link href={`/reels/${reel.slug}`} className="block" tabIndex={0}>
-        {/* Preview — autoplaying clip when we have a file, thumbnail otherwise */}
+        {/* Preview frame */}
         <div
           ref={frameRef}
           className="relative aspect-9-16 overflow-hidden bg-bg-200"
           data-reel-preview={reel.slug}
           data-playing={playing ? 'true' : 'false'}
         >
-          {hasVideo ? (
+          {/* ── Direct mp4 — autoplays on scroll ── */}
+          {hasVideo && (
             <video
               ref={videoRef}
-              src={reel.video_url ?? undefined}
+              src={playableSrc ?? undefined}
               poster={reel.thumbnail_url ?? undefined}
               muted
               loop
@@ -111,38 +109,71 @@ export default function ReelCard({ reel, index = 0 }: ReelCardProps) {
               onPause={() => setPlaying(false)}
               onError={() => { setPlaying(false); setVideoFailed(true) }}
             />
-          ) : reel.thumbnail_url ? (
-            <Image
-              src={reel.thumbnail_url}
-              alt={`Thumbnail for ${reel.title}`}
-              fill
-              className="object-cover transition-transform duration-[680ms] group-hover:scale-105"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-accent-muted to-bg-300 flex items-center justify-center">
-              <Play className="w-10 h-10 text-accent opacity-60" aria-hidden="true" />
-            </div>
+          )}
+
+          {/* ── Instagram reel — poster image or branded gradient ── */}
+          {!hasVideo && isIG && (
+            <>
+              {reel.thumbnail_url ? (
+                <Image
+                  src={reel.thumbnail_url}
+                  alt={`Thumbnail for ${reel.title}`}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#f09433] via-[#e6683c] via-[#dc2743] via-[#cc2366] to-[#bc1888] flex items-center justify-center">
+                  <Instagram className="w-12 h-12 text-white/80" aria-hidden="true" />
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── No video, no Instagram — plain gradient ── */}
+          {!hasVideo && !isIG && (
+            reel.thumbnail_url ? (
+              <Image
+                src={reel.thumbnail_url}
+                alt={`Thumbnail for ${reel.title}`}
+                fill
+                className="object-cover transition-transform duration-[680ms] group-hover:scale-105"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-accent-muted to-bg-300 flex items-center justify-center">
+                <Play className="w-10 h-10 text-accent opacity-60" aria-hidden="true" />
+              </div>
+            )
           )}
 
           {/* Gradient overlay */}
           <div className="absolute inset-0 thumbnail-overlay pointer-events-none" aria-hidden="true" />
 
-          {/* Play affordance — hidden while the preview is actually rolling */}
+          {/* Play affordance — hidden while video is rolling */}
           {!playing && (
             <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-240">
-              <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <Play className="w-5 h-5 text-black ml-0.5" aria-hidden="true" />
+              <div className="w-14 h-14 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                <Play className="w-6 h-6 text-black ml-0.5" aria-hidden="true" />
               </div>
             </div>
           )}
 
-          {/* Muted badge — tells people the silence is deliberate */}
+          {/* Muted badge — shows while playing */}
           {playing && (
             <div className="absolute top-3 left-3 glass-card px-2 py-1 flex items-center gap-1 text-ink text-xs font-medium"
                  style={{ borderRadius: 8 }}>
               <VolumeX className="w-3 h-3" aria-hidden="true" />
               <span>Muted</span>
+            </div>
+          )}
+
+          {/* Instagram badge — top right on IG cards */}
+          {isIG && !playing && (
+            <div className="absolute top-3 right-3 glass-card px-2 py-1 flex items-center gap-1 text-ink text-xs font-medium"
+                 style={{ borderRadius: 8 }}>
+              <Instagram className="w-3 h-3" aria-hidden="true" />
+              <span>Reel</span>
             </div>
           )}
 
@@ -163,7 +194,7 @@ export default function ReelCard({ reel, index = 0 }: ReelCardProps) {
             <p className="text-sm text-muted line-clamp-2">{reel.description}</p>
           )}
           <span className="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-accent">
-            View Roadmaps
+            {isIG ? 'Watch on Instagram' : 'View Roadmaps'}
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

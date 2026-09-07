@@ -48,10 +48,10 @@ export default function HeroZoom() {
               </span>
             </h1>
             <p className="text-lg sm:text-xl font-medium text-ink/80 max-w-xl mx-auto mb-7">
-              A living library of under-the-radar business ideas — with downloadable roadmaps, real ₹ numbers, and a smart research bot. No subscription.
+              Search any business, pick your niche, and get a complete, fact-checked roadmap — registration, licenses, fees in ₹, suppliers, market and timeline. Powered by Gemini.
             </p>
             <form
-              onSubmit={(e) => { e.preventDefault(); if (q.trim()) router.push(`/explore?q=${encodeURIComponent(q.trim())}`) }}
+              onSubmit={(e) => { e.preventDefault(); if (q.trim()) router.push(`/builder?topic=${encodeURIComponent(q.trim())}`) }}
               className="relative max-w-lg mx-auto mb-5"
               role="search"
             >
@@ -59,20 +59,20 @@ export default function HeroZoom() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Research any idea — e.g. vending machines"
-                aria-label="Research a business idea"
-                className="w-full pl-12 pr-28 py-3.5 rounded-full border-2 border-ink bg-white text-[15px] font-medium shadow-hard focus:outline-none"
+                placeholder="What business do you want to start?"
+                aria-label="Enter a business idea to build a roadmap"
+                className="w-full pl-12 pr-36 py-3.5 rounded-full border-2 border-ink bg-white text-[15px] font-medium shadow-hard focus:outline-none"
               />
               <button type="submit" className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-ink text-white font-bold text-sm px-5 py-2.5 hover:-translate-x-0.5 transition-transform">
-                Search
+                Build roadmap
               </button>
             </form>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <MagneticButton>
-                <Link href="/library" className="btn-primary px-7 py-3.5"><Library className="w-4 h-4" /> Browse the library</Link>
+                <Link href="/builder" className="btn-primary px-7 py-3.5"><Compass className="w-4 h-4" /> Build a roadmap</Link>
               </MagneticButton>
               <MagneticButton>
-                <Link href="/explore" className="btn-secondary px-7 py-3.5"><Compass className="w-4 h-4" /> Open research bot</Link>
+                <Link href="/library" className="btn-secondary px-7 py-3.5"><Library className="w-4 h-4" /> Browse ideas</Link>
               </MagneticButton>
             </div>
             <p className="mt-6 text-sm font-semibold text-ink/50">Scroll to explore ↓</p>

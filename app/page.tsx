@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import {
-  Compass, Library, ArrowRight, Search, Download, Rocket,
-  BadgeIndianRupee, ShieldCheck, Bot, Map, ChevronRight,
+  Compass, Library, ArrowRight, Search, Rocket, ChevronRight,
+  ScrollText, BadgeCheck, IndianRupee, Store, TrendingUp, CalendarClock, ShieldAlert, Sparkles,
 } from 'lucide-react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
@@ -18,27 +18,30 @@ import { IDEAS, CATEGORIES } from '@/lib/demoData'
 
 export const metadata: Metadata = {
   title: 'biz — Business ideas hiding in plain sight',
-  description: 'A living library of hidden business ideas with downloadable roadmaps, real ₹ numbers and a smart research bot. No subscription.',
+  description: 'Search any business idea and get a complete, fact-checked, India-ready roadmap — registration, licenses, fees in ₹, suppliers, market and timeline. Powered by Gemini.',
 }
 
 const STEPS = [
-  { icon: Search, title: 'Discover', text: 'Browse under-the-radar business ideas — each with real ₹ startup costs and monthly potential.', color: '#8FD3FF' },
-  { icon: Download, title: 'Download', text: 'Grab the exact step-by-step roadmap you want as a file. No subscription, no paywall.', color: '#FF5CA8' },
-  { icon: Rocket, title: 'Build', text: 'Follow the timeline, hit each deliverable, and launch your passive-income stream faster.', color: '#2FB457' },
+  { icon: Search, title: 'Search', text: 'Type any business — from vending machines to a cloud kitchen — and add your niche and budget.', color: '#8FD3FF' },
+  { icon: Sparkles, title: 'Get your roadmap', text: 'Gemini researches it and builds a fact-checked, India-specific plan in about ten seconds.', color: '#FF5CA8' },
+  { icon: Rocket, title: 'Start building', text: 'Follow the steps, find suppliers on IndiaMART, and download the whole plan as a PDF.', color: '#2FB457' },
 ]
 
 const WHY = [
-  { icon: BadgeIndianRupee, title: 'Real ₹ numbers', text: 'Startup cost and monthly potential in rupees — no vague hype.' },
-  { icon: ShieldCheck, title: 'No subscription', text: 'Download any roadmap free. You keep the file. No recurring charges.' },
-  { icon: Bot, title: 'Smart research bot', text: 'Search a topic and the bot pulls organized insights from the web.' },
-  { icon: Map, title: 'Actionable roadmaps', text: 'Dated steps with clear deliverables you can actually execute.' },
+  { icon: ScrollText, title: 'Registration process', text: 'The exact steps to register your business, in order.' },
+  { icon: BadgeCheck, title: 'Licenses & permissions', text: 'Every license you need — FSSAI, GST, Udyam and more — and who issues it.' },
+  { icon: IndianRupee, title: 'Charges & fees', text: 'A clear cost breakdown in rupees, one-time and recurring.' },
+  { icon: Store, title: 'Suppliers & manufacturers', text: 'What to source and ready-made IndiaMART searches to find real vendors.' },
+  { icon: TrendingUp, title: 'Market & competitors', text: 'Where the market is heading and who you are up against.' },
+  { icon: CalendarClock, title: 'Estimated timeline', text: 'A phased plan with milestones so you know what to do when.' },
+  { icon: ShieldAlert, title: 'Challenges & solutions', text: 'The common pitfalls for your idea — and how to avoid each one.' },
 ]
 
 const FAQ = [
-  { q: 'Do I need to pay or subscribe?', a: 'No. The full library and every roadmap download is free. You only sign in for admin/creator access.' },
-  { q: 'What exactly do I download?', a: 'A clean, formatted roadmap file with the timeline, estimated cost in ₹, difficulty, and every step with its deliverable. You can also save it as a PDF.' },
-  { q: 'How does the research bot work?', a: 'Type any topic on the Explore page. The bot matches ideas in our library and pulls an overview plus related web results into one view.' },
-  { q: 'Are these ideas realistic for India?', a: 'Yes — costs and earning potential are shown in rupees, and the ideas are chosen to be low-cost and quick to test.' },
+  { q: 'What do I get when I search a business?', a: 'A complete roadmap with seven sections: registration, licenses & permissions, charges & fees in ₹, suppliers & manufacturers, market & competitor insights, an estimated timeline, and common challenges with solutions.' },
+  { q: 'How does the roadmap builder work?', a: 'Type any business idea, add your niche and budget, and Gemini researches it and builds a structured, India-specific plan in about ten seconds. You can download it as a PDF.' },
+  { q: 'Do I need to pay or subscribe?', a: 'No. Searching and building roadmaps is free, and every roadmap saves to your device and exports to PDF. You only sign in for admin/creator access.' },
+  { q: 'Is the information reliable?', a: 'It is fact-checked and India-specific — real regulatory bodies, rupee costs and IndiaMART supplier searches. Always confirm exact licenses and fees with official sources before you commit.' },
 ]
 
 export default function HomePage() {
@@ -147,12 +150,12 @@ export default function HomePage() {
             <Reveal>
               <div className="biz-card overflow-hidden relative grid lg:grid-cols-[1fr_auto] items-center gap-8 p-8 sm:p-12" style={{ backgroundColor: '#7B6EF6' }}>
                 <div className="relative z-10 max-w-xl text-white">
-                  <span className="chip bg-white text-ink mb-5"><Bot className="w-4 h-4" /> Smart bot</span>
-                  <h2 className="text-title text-white mb-3">Research any idea in one clean view</h2>
+                  <span className="chip bg-white text-ink mb-5"><Sparkles className="w-4 h-4" /> AI roadmap builder</span>
+                  <h2 className="text-title text-white mb-3">Turn any idea into a full plan</h2>
                   <p className="text-white/90 mb-6 font-medium">
-                    Type a topic and the bot fetches similar ideas from our library, a clear overview, and related results from around the web — organized, not 20 open tabs.
+                    Search a business, pick your niche, and Gemini builds a fact-checked, India-ready roadmap — registration, licenses, fees in ₹, suppliers, market and timeline — in one clean view.
                   </p>
-                  <Link href="/explore" className="btn-yellow px-6 py-3"><Search className="w-4 h-4" /> Open the research bot</Link>
+                  <Link href="/builder" className="btn-yellow px-6 py-3"><Compass className="w-4 h-4" /> Open the roadmap builder</Link>
                 </div>
                 <img src="/illustrations/ideas-head.png" alt="" aria-hidden="true" className="hidden lg:block w-56 justify-self-end drop-shadow-[4px_4px_0_rgba(20,20,20,0.3)]" />
               </div>
@@ -166,8 +169,8 @@ export default function HomePage() {
             <Reveal className="grid lg:grid-cols-[auto_1fr] items-end gap-6 mb-10">
               <img src="/illustrations/trio.png" alt="Three happy people" className="hidden lg:block w-52 drop-shadow-[4px_4px_0_rgba(20,20,20,0.15)]" />
               <div>
-                <span className="chip bg-biz-green text-white mb-4">Why biz</span>
-                <h2 id="why-heading" className="text-title">Built to get you from idea to income</h2>
+                <span className="chip bg-biz-green text-white mb-4">Every roadmap</span>
+                <h2 id="why-heading" className="text-title">Seven things every roadmap gives you</h2>
               </div>
             </Reveal>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -219,9 +222,9 @@ export default function HomePage() {
                 <img src="/illustrations/skater.png" alt="" aria-hidden="true" className="hidden sm:block absolute left-4 bottom-0 w-40 -rotate-6" />
                 <img src="/illustrations/watermelon.png" alt="" aria-hidden="true" className="hidden sm:block absolute right-4 top-2 w-36 rotate-6" />
                 <div className="relative">
-                  <h2 className="text-title mb-4">Your next idea is hiding in the library</h2>
-                  <p className="text-ink/80 font-medium max-w-xl mx-auto mb-8">Start browsing {IDEAS.length} curated ideas and download the roadmap that fits you — free.</p>
-                  <Link href="/library" className="btn-primary px-8 py-4 text-lg"><Library className="w-5 h-5" /> Explore the library</Link>
+                  <h2 className="text-title mb-4">What do you want to start?</h2>
+                  <p className="text-ink/80 font-medium max-w-xl mx-auto mb-8">Search any business and get a complete, fact-checked, India-ready roadmap in seconds — free.</p>
+                  <Link href="/builder" className="btn-primary px-8 py-4 text-lg"><Compass className="w-5 h-5" /> Build my roadmap</Link>
                 </div>
               </div>
             </Reveal>
