@@ -6,6 +6,22 @@ const YELLOW: [number, number, number] = [255, 225, 17]
 const GREEN: [number, number, number] = [47, 180, 87]
 const MUTED: [number, number, number] = [90, 90, 90]
 
+// Gemini occasionally leaves markdown / code artefacts in text fields. jsPDF
+// renders them literally (raw **, `` , ##, ```fences```, [x](y)), which looks
+// like code printed in the PDF. Strip them so the export stays clean prose.
+function stripMd(input: unknown): string {
+  let s = typeof input === 'string' ? input : input == null ? '' : String(input)
+  s = s.replace(/```[a-zA-Z0-9]*\s*/g, '').replace(/```/g, '')
+  s = s.replace(/`([^`]+)`/g, '$1')
+  s = s.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/__([^_]+)__/g, '$1')
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
+  s = s.replace(/^\s{0,3}#{1,6}\s+/gm, '')
+  s = s.replace(/^\s*[-*+]\s+/gm, '')
+  s = s.replace(/^\s*>\s?/gm, '')
+  s = s.replace(/\*/g, '').replace(/[ \t]+/g, ' ')
+  return s.trim()
+}
+
 // Generates a clean, on-brand PDF roadmap and triggers a browser download.
 // No sign-in required — users grab exactly the roadmap they want, as a real PDF.
 export async function downloadRoadmap(idea: Pick<Idea, 'title' | 'tagline'>, roadmap: DemoRoadmap) {
@@ -248,7 +264,7 @@ export async function downloadAIRoadmap(r: AIRoadmap) {
   const ensure = (need: number) => { if (y + need > bottom) { doc.addPage(); y = 60 } }
   const para = (text: string, size = 10, color: [number, number, number] = MUTED, indent = 0) => {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(size); doc.setTextColor(...color)
-    const lines = doc.splitTextToSize(text, CW - indent)
+    const lines = doc.splitTextToSize(stripMd(text), CW - indent)
     ensure(lines.length * (size + 3))
     doc.text(lines, M + indent, y)
     y += lines.length * (size + 3)
@@ -263,10 +279,10 @@ export async function downloadAIRoadmap(r: AIRoadmap) {
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9)
   doc.text('AI BUSINESS ROADMAP', M + 46, 51)
   doc.setFont('helvetica', 'bold'); doc.setFontSize(19)
-  const titleLines = doc.splitTextToSize(r.title, CW)
+  const titleLines = doc.splitTextToSize(stripMd(r.title), CW)
   doc.text(titleLines, M, 88)
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(40, 40, 40)
-  const sumLines = doc.splitTextToSize(r.summary, CW).slice(0, 2)
+  const sumLines = doc.splitTextToSize(stripMd(r.summary), CW).slice(0, 2)
   doc.text(sumLines, M, 88 + titleLines.length * 21)
 
   // Meta strip
@@ -289,13 +305,13 @@ export async function downloadAIRoadmap(r: AIRoadmap) {
     ensure(48)
     doc.setFillColor(...INK); doc.roundedRect(M, y - 15, CW, 28, 6, 6, 'F')
     doc.setTextColor(...YELLOW); doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5)
-    doc.text(`${n}.  ${t.toUpperCase()}`, M + 10, y + 3)
+    doc.text(`${n}.  ${stripMd(t).toUpperCase()}`, M + 10, y + 3)
     y += 32
   }
   const bullet = (text: string, label?: string) => {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(10)
     doc.setFont('helvetica', 'normal'); doc.setFontSize(10)
-    const full = label ? `${label}: ${text}` : text
+    const full = label ? `${stripMd(label)}: ${stripMd(text)}` : stripMd(text)
     const lines = doc.splitTextToSize(full, CW - 18)
     ensure(lines.length * 13 + 4)
     doc.setFillColor(...GREEN); doc.circle(M + 4, y - 3, 3, 'F')

@@ -40,6 +40,7 @@ export interface AIRoadmap {
   model?: string
   createdAt: number
   input: RoadmapInput
+  fromVideo?: boolean
 }
 
 // Build an IndiaMART search URL for a supplier query.
@@ -50,6 +51,25 @@ export function indiamartUrl(query: string): string {
 // Call the server route which talks to Gemini. Throws on failure.
 export async function generateRoadmap(input: RoadmapInput, signal?: AbortSignal): Promise<AIRoadmap> {
   const res = await fetch('/api/roadmap', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+    signal,
+  })
+  const data = await res.json().catch(() => null)
+  if (!res.ok || !data || data.error) {
+    throw new Error(data?.error || `Roadmap generation failed (${res.status})`)
+  }
+  return data as AIRoadmap
+}
+
+// Generate a roadmap from a reel's own video (audio + visuals via Gemini),
+// falling back to its title/description if the video can't be read.
+export async function generateRoadmapFromReel(
+  input: { videoUrl?: string | null; title: string; description?: string | null },
+  signal?: AbortSignal,
+): Promise<AIRoadmap> {
+  const res = await fetch('/api/reel-roadmap', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),

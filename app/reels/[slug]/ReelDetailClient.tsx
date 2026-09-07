@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, BookOpen } from 'lucide-react'
+import { ArrowLeft, BookOpen, Sparkles, Loader2, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import VideoPlayer from '@/components/VideoPlayer'
 import RoadmapCard from '@/components/RoadmapCard'
+import RoadmapView from '@/components/RoadmapView'
+import { generateRoadmapFromReel, type AIRoadmap } from '@/lib/roadmapAI'
 import ModalAuth from '@/components/ModalAuth'
 import { supabase } from '@/lib/supabaseClient'
 import { trackDownload, trackReelView } from '@/lib/analytics'
@@ -20,6 +22,9 @@ interface ReelDetailClientProps {
 
 export default function ReelDetailClient({ reel, guide }: ReelDetailClientProps) {
   const [selectedRoadmap, setSelectedRoadmap] = useState<string | null>(null)
+  const [aiRoadmap, setAiRoadmap] = useState<AIRoadmap | null>(null)
+  const [generating, setGenerating] = useState(false)
+  const [genErr, setGenErr] = useState<string | null>(null)
   const [showAuth, setShowAuth] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const roadmaps: Roadmap[] = guide?.roadmaps ?? []
@@ -27,6 +32,18 @@ export default function ReelDetailClient({ reel, guide }: ReelDetailClientProps)
   useEffect(() => {
     trackReelView(reel.slug)
   }, [reel.slug])
+
+  async function handleGenerate() {
+    setGenerating(true); setGenErr(null)
+    try {
+      const r = await generateRoadmapFromReel({ videoUrl: reel.video_url, title: reel.title, description: reel.description })
+      setAiRoadmap(r)
+    } catch (e) {
+      setGenErr(e instanceof Error ? e.message : 'Could not generate a roadmap right now. Please try again.')
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   async function handleDownload() {
     if (!guide) return
@@ -122,9 +139,34 @@ export default function ReelDetailClient({ reel, guide }: ReelDetailClientProps)
                   ))}
                 </div>
               </motion.div>
+            ) : aiRoadmap ? (
+              <motion.div variants={fadeUpItem}>
+                <RoadmapView roadmap={aiRoadmap} onRestart={() => setAiRoadmap(null)} />
+              </motion.div>
             ) : (
               <motion.div variants={fadeUpItem} className="rounded-20 bg-bg-200 p-8 text-center">
-                <p className="text-muted">Roadmaps coming soon for this idea.</p>
+                <Sparkles className="w-8 h-8 mx-auto text-accent mb-3" aria-hidden="true" />
+                <h2 className="font-display font-semibold text-lg mb-1">No roadmap yet</h2>
+                <p className="text-muted text-sm mb-5 max-w-md mx-auto">
+                  Let AI watch this reel and build a full India-focused business roadmap from what it says.
+                </p>
+                <button
+                  onClick={handleGenerate}
+                  disabled={generating}
+                  className="btn-primary px-6 py-3 disabled:opacity-60 inline-flex items-center gap-2"
+                >
+                  {generating
+                    ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Reading the video…</>
+                    : <><Sparkles className="w-4 h-4" aria-hidden="true" /> Generate roadmap from this video</>}
+                </button>
+                {generating && (
+                  <p className="text-xs text-muted mt-3">This can take up to a minute while AI watches and listens.</p>
+                )}
+                {genErr && (
+                  <p role="alert" className="text-sm text-biz-pink mt-4 flex items-center justify-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4" aria-hidden="true" /> {genErr}
+                  </p>
+                )}
               </motion.div>
             )}
 

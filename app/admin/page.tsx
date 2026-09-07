@@ -54,6 +54,7 @@ export default function AdminPage() {
   const [guideSummary, setGuideSummary] = useState('')
   const [thumbnail, setThumbnail] = useState<File | null>(null)
   const [pdf, setPdf] = useState<File | null>(null)
+  const [video, setVideo] = useState<File | null>(null)
   const [roadmaps, setRoadmaps] = useState<RoadmapDraft[]>([{ ...emptyRoadmap }])
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
@@ -104,10 +105,32 @@ export default function AdminPage() {
       })
     }
 
+    // Upload the video straight to Supabase Storage (signed URL) so we skip
+    // Vercel's 4.5 MB request-body cap. The public URL then plays on /reels.
+    setSaving(true)
+    let effectiveVideoUrl = videoUrl
+    if (video) {
+      try {
+        const uu = await fetch('/api/admin/upload-url', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: video.name }),
+        })
+        const uj = await uu.json()
+        if (!uu.ok || !uj.path) throw new Error(uj.error || 'Could not get an upload URL.')
+        const { error: upErr } = await supabase.storage.from('reels').uploadToSignedUrl(uj.path, uj.token, video)
+        if (upErr) throw new Error('Video upload failed: ' + upErr.message)
+        effectiveVideoUrl = uj.publicUrl
+      } catch (err) {
+        setMsg({ type: 'err', text: err instanceof Error ? err.message : 'Video upload failed.' })
+        setSaving(false)
+        return
+      }
+    }
+
     const fd = new FormData()
     fd.append('title', title)
     fd.append('description', description)
-    fd.append('videoUrl', videoUrl)
+    fd.append('videoUrl', effectiveVideoUrl)
     fd.append('duration', duration)
     fd.append('guideTitle', guideTitle)
     fd.append('guideSummary', guideSummary)
@@ -123,7 +146,7 @@ export default function AdminPage() {
       setMsg({ type: 'ok', text: `Published! Live at /reels/${data.slug}` })
       // reset
       setTitle(''); setDescription(''); setVideoUrl(''); setDuration('')
-      setGuideTitle(''); setGuideSummary(''); setThumbnail(null); setPdf(null)
+      setGuideTitle(''); setGuideSummary(''); setThumbnail(null); setPdf(null); setVideo(null)
       setRoadmaps([{ ...emptyRoadmap }])
       load()
     } catch (err) {
@@ -373,13 +396,17 @@ export default function AdminPage() {
           </Field>
 
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Video URL (hosted MP4 / CDN)">
-              <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className={inputCls} placeholder="https://.../reel.mp4" />
+            <Field label="Video URL (Instagram embed fallback)">
+              <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className={inputCls} placeholder="https://www.instagram.com/reel/ABC123/ or https://.../reel.mp4" />
             </Field>
             <Field label="Duration (seconds)">
               <input value={duration} onChange={(e) => setDuration(e.target.value)} type="number" className={inputCls} placeholder="47" />
             </Field>
           </div>
+
+          <Field label="Upload video file (autoplays on the reel page)">
+            <FileInput file={video} onChange={setVideo} accept="video/*" hint="MP4 / MOV — uploaded straight to storage, plays inline. Overrides the URL above. Use your own reel export." />
+          </Field>
 
           <Field label="Thumbnail image (uploaded)">
             <FileInput file={thumbnail} onChange={setThumbnail} accept="image/*" hint="PNG or JPG, shown on the reel card" />
