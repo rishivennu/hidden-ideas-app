@@ -19,6 +19,7 @@ export interface Reel {
   duration_seconds: number | null
   published: boolean
   created_at: string
+  ai_roadmap?: import('./roadmapAI').AIRoadmap | null
 }
 
 export interface Guide {

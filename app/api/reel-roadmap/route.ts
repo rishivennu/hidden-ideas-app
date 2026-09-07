@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { uploadVideoToGemini, waitForActive, deleteGeminiFile } from '@/lib/geminiVideo'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabaseServer'
+import { isYouTubeUrl } from '@/lib/mediaUrl'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -7,6 +9,11 @@ export const maxDuration = 60
 const MODELS = ['gemini-flash-latest', 'gemini-flash-lite-latest']
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024
+
+function isAdmin(email?: string | null): boolean {
+  const list = (process.env.ADMIN_EMAILS ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+  return !!email && list.includes(email.toLowerCase())
+}
 
 const SYSTEM = `You are a meticulous Indian business-setup research analyst. You will be given a short-form business video (or just its title/description) and must produce a comprehensive, fact-checked, ACTIONABLE roadmap for starting that business IN INDIA.
 
@@ -42,24 +49,24 @@ const schema = {
 function rid(): string {
   return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4)
 }
-
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
+// Direct mp4/mov/webm we can download; excludes Instagram (login-walled).
 function isFetchableVideo(url?: string | null): boolean {
   if (!url) return false
-  if (/instagram\.com|youtu\.?be|tiktok\.com/i.test(url)) return false
+  if (/instagram\.com/i.test(url)) return false
   return /\.(mp4|mov|webm|m4v)(\?|$)/i.test(url)
 }
-
 function mimeFor(url: string): string {
   if (/\.webm(\?|$)/i.test(url)) return 'video/webm'
   if (/\.mov(\?|$)/i.test(url)) return 'video/quicktime'
   return 'video/mp4'
 }
 
-interface Parts { parts: ({ text: string } | { fileData: { mimeType: string; fileUri: string } })[] }
+type Part = { text: string } | { fileData: { mimeType?: string; fileUri: string } }
+interface Content { parts: Part[] }
 
-async function callGemini(model: string, contents: Parts[], key: string) {
+async function callGemini(model: string, contents: Content[], key: string) {
   const body = {
     systemInstruction: { parts: [{ text: SYSTEM }] },
     contents,
@@ -80,23 +87,33 @@ export async function POST(req: NextRequest) {
   const key = process.env.GEMINI_API_KEY
   if (!key) return NextResponse.json({ error: 'The roadmap engine is not configured yet (missing GEMINI_API_KEY).' }, { status: 503 })
 
-  let input: { videoUrl?: string | null; title?: string; description?: string | null }
+  // Only admins may generate — the result is saved on the reel for everyone.
+  const auth = createServerSupabaseClient()
+  const { data: { user } } = await auth.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Sign in as an admin to generate a roadmap.' }, { status: 401 })
+  if (!isAdmin(user.email)) return NextResponse.json({ error: 'Only admins can generate roadmaps.' }, { status: 403 })
+
+  let input: { videoUrl?: string | null; title?: string; description?: string | null; slug?: string }
   try { input = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 }) }
 
   const title = (input.title || '').trim()
   if (!title) return NextResponse.json({ error: 'Missing reel title.' }, { status: 400 })
   const description = (input.description || '').trim()
+  const url = input.videoUrl || null
 
   let geminiFileName: string | null = null
-  let videoPart: { fileData: { mimeType: string; fileUri: string } } | null = null
-  if (isFetchableVideo(input.videoUrl)) {
+  let videoPart: { fileData: { mimeType?: string; fileUri: string } } | null = null
+
+  if (isYouTubeUrl(url)) {
+    // Gemini reads YouTube URLs natively — no download, no Files API.
+    videoPart = { fileData: { fileUri: url as string } }
+  } else if (isFetchableVideo(url)) {
     try {
-      const vres = await fetch(input.videoUrl as string)
+      const vres = await fetch(url as string)
       if (vres.ok) {
         const buf = Buffer.from(await vres.arrayBuffer())
         if (buf.byteLength > 0 && buf.byteLength <= MAX_VIDEO_BYTES) {
-          const mime = mimeFor(input.videoUrl as string)
-          const file = await uploadVideoToGemini(buf, mime, key)
+          const file = await uploadVideoToGemini(buf, mimeFor(url as string), key)
           if (file && (await waitForActive(file.name, key))) {
             geminiFileName = file.name
             videoPart = { fileData: { mimeType: file.mimeType, fileUri: file.uri } }
@@ -113,8 +130,7 @@ export async function POST(req: NextRequest) {
   const promptText = videoPart
     ? `Watch this business reel and build the full India roadmap for the idea it describes. ${guidance.join(' ')}`
     : `Build the full India roadmap for this business idea. ${guidance.join(' ')}`
-
-  const contents: Parts[] = [{ parts: videoPart ? [videoPart, { text: promptText }] : [{ text: promptText }] }]
+  const contents: Content[] = [{ parts: videoPart ? [videoPart, { text: promptText }] : [{ text: promptText }] }]
 
   let lastErr = 'The roadmap engine is busy. Please try again in a moment.'
   try {
@@ -133,6 +149,12 @@ export async function POST(req: NextRequest) {
               createdAt: Date.now(),
               input: { topic: title },
               fromVideo: !!videoPart,
+            }
+            // Persist on the reel so it survives refresh and shows for all visitors.
+            if (input.slug) {
+              try {
+                await createAdminSupabaseClient().from('reels').update({ ai_roadmap: roadmap }).eq('slug', input.slug)
+              } catch { /* generation still succeeds even if the save fails */ }
             }
             return NextResponse.json(roadmap)
           }

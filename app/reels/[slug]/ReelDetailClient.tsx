@@ -18,11 +18,13 @@ import { useEffect } from 'react'
 interface ReelDetailClientProps {
   reel: Reel
   guide: (Guide & { roadmaps: Roadmap[] }) | null
+  isAdmin?: boolean
+  initialRoadmap?: AIRoadmap | null
 }
 
-export default function ReelDetailClient({ reel, guide }: ReelDetailClientProps) {
+export default function ReelDetailClient({ reel, guide, isAdmin = false, initialRoadmap = null }: ReelDetailClientProps) {
   const [selectedRoadmap, setSelectedRoadmap] = useState<string | null>(null)
-  const [aiRoadmap, setAiRoadmap] = useState<AIRoadmap | null>(null)
+  const [aiRoadmap, setAiRoadmap] = useState<AIRoadmap | null>(initialRoadmap)
   const [generating, setGenerating] = useState(false)
   const [genErr, setGenErr] = useState<string | null>(null)
   const [showAuth, setShowAuth] = useState(false)
@@ -36,7 +38,7 @@ export default function ReelDetailClient({ reel, guide }: ReelDetailClientProps)
   async function handleGenerate() {
     setGenerating(true); setGenErr(null)
     try {
-      const r = await generateRoadmapFromReel({ videoUrl: reel.video_url, title: reel.title, description: reel.description })
+      const r = await generateRoadmapFromReel({ videoUrl: reel.video_url, title: reel.title, description: reel.description, slug: reel.slug })
       setAiRoadmap(r)
     } catch (e) {
       setGenErr(e instanceof Error ? e.message : 'Could not generate a roadmap right now. Please try again.')
@@ -143,12 +145,12 @@ export default function ReelDetailClient({ reel, guide }: ReelDetailClientProps)
               <motion.div variants={fadeUpItem}>
                 <RoadmapView roadmap={aiRoadmap} onRestart={() => setAiRoadmap(null)} />
               </motion.div>
-            ) : (
+            ) : isAdmin ? (
               <motion.div variants={fadeUpItem} className="rounded-20 bg-bg-200 p-8 text-center">
                 <Sparkles className="w-8 h-8 mx-auto text-accent mb-3" aria-hidden="true" />
                 <h2 className="font-display font-semibold text-lg mb-1">No roadmap yet</h2>
                 <p className="text-muted text-sm mb-5 max-w-md mx-auto">
-                  Let AI watch this reel and build a full India-focused business roadmap from what it says.
+                  Let AI watch this reel and build a full India-focused business roadmap from what it says. It saves to this reel and everyone will see it.
                 </p>
                 <button
                   onClick={handleGenerate}
@@ -167,6 +169,10 @@ export default function ReelDetailClient({ reel, guide }: ReelDetailClientProps)
                     <AlertTriangle className="w-4 h-4" aria-hidden="true" /> {genErr}
                   </p>
                 )}
+              </motion.div>
+            ) : (
+              <motion.div variants={fadeUpItem} className="rounded-20 bg-bg-200 p-8 text-center">
+                <p className="text-muted">Roadmap coming soon for this idea.</p>
               </motion.div>
             )}
 

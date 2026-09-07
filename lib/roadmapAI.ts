@@ -66,7 +66,7 @@ export async function generateRoadmap(input: RoadmapInput, signal?: AbortSignal)
 // Generate a roadmap from a reel's own video (audio + visuals via Gemini),
 // falling back to its title/description if the video can't be read.
 export async function generateRoadmapFromReel(
-  input: { videoUrl?: string | null; title: string; description?: string | null },
+  input: { videoUrl?: string | null; title: string; description?: string | null; slug?: string },
   signal?: AbortSignal,
 ): Promise<AIRoadmap> {
   const res = await fetch('/api/reel-roadmap', {

@@ -396,8 +396,8 @@ export default function AdminPage() {
           </Field>
 
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Video URL (Instagram embed fallback)">
-              <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className={inputCls} placeholder="https://www.instagram.com/reel/ABC123/ or https://.../reel.mp4" />
+            <Field label="Video URL (YouTube plays inline · Instagram = embed card)">
+              <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className={inputCls} placeholder="https://youtube.com/shorts/XXX  ·  https://youtu.be/XXX  ·  or an Instagram reel link" />
             </Field>
             <Field label="Duration (seconds)">
               <input value={duration} onChange={(e) => setDuration(e.target.value)} type="number" className={inputCls} placeholder="47" />

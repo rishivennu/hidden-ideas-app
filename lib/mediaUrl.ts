@@ -37,3 +37,30 @@ export function toPlayableSrc(url: string | null | undefined): string | null {
   if (isInstagramUrl(url)) return null   // <-- grid card skips video; detail uses iframe
   return url
 }
+
+// ── YouTube ─────────────────────────────────────────────────────────────────
+// YouTube's iframe player DOES autoplay inline on third-party sites (unlike
+// Instagram), and Gemini can read a YouTube URL directly — so it needs no
+// download for either playback or roadmap generation.
+const YT_URL_RE = /(?:youtube\.com|youtu\.be)/i
+const YT_ID_RE = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+
+export function isYouTubeUrl(url: string | null | undefined): boolean {
+  return !!url && YT_URL_RE.test(url)
+}
+
+export function youTubeId(url: string): string | null {
+  const m = url.match(YT_ID_RE)
+  return m ? m[1] : null
+}
+
+/** Embed src that autoplays (muted) and loops, sized for a vertical Short. */
+export function toYouTubeEmbed(url: string): string | null {
+  const id = youTubeId(url)
+  if (!id) return null
+  const p = new URLSearchParams({
+    autoplay: '1', mute: '1', loop: '1', playlist: id,
+    playsinline: '1', rel: '0', modestbranding: '1',
+  })
+  return `https://www.youtube-nocookie.com/embed/${id}?${p.toString()}`
+}

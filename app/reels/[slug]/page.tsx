@@ -46,6 +46,12 @@ export default async function ReelDetailPage({ params }: PageProps) {
 
   const guide = guides?.[0] ?? null
 
+  // Is the current visitor an admin? Only they see the "Generate" button; the
+  // saved roadmap (reel.ai_roadmap) is shown to everyone.
+  const { data: { user } } = await supabase.auth.getUser()
+  const adminList = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
+  const isAdmin = !!user?.email && adminList.includes(user.email.toLowerCase())
+
   // JSON-LD structured data
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -78,7 +84,7 @@ export default async function ReelDetailPage({ params }: PageProps) {
       />
       <Header />
       <main id="main-content" tabIndex={-1} className="pt-16">
-        <ReelDetailClient reel={reel} guide={guide} />
+        <ReelDetailClient reel={reel} guide={guide} isAdmin={isAdmin} initialRoadmap={reel.ai_roadmap ?? null} />
       </main>
       <Footer />
     </>

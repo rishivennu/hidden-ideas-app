@@ -3,7 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { Play, Pause, Volume2, VolumeX, AlertTriangle } from 'lucide-react'
-import { isInstagramUrl, toEmbedUrl } from '@/lib/mediaUrl'
+import { isInstagramUrl, toEmbedUrl, isYouTubeUrl, toYouTubeEmbed } from '@/lib/mediaUrl'
 
 interface VideoPlayerProps {
   src: string
@@ -25,6 +25,29 @@ function InstagramEmbed({ src, title }: { src: string; title: string }) {
         src={embedUrl}
         className="w-full h-full border-0"
         allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+        allowFullScreen
+        loading="lazy"
+        title={title}
+        aria-label={title}
+      />
+    </div>
+  )
+}
+
+/** YouTube-embed variant — autoplays (muted) and loops inline, no download needed. */
+function YouTubeEmbed({ src, title }: { src: string; title: string }) {
+  const embedUrl = toYouTubeEmbed(src)
+  if (!embedUrl) return null
+  return (
+    <div
+      className="relative w-full overflow-hidden rounded-20 bg-black select-none aspect-9-16"
+      role="region"
+      aria-label={`Video: ${title}`}
+    >
+      <iframe
+        src={embedUrl}
+        className="w-full h-full border-0"
+        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
         allowFullScreen
         loading="lazy"
         title={title}
@@ -167,6 +190,7 @@ function Mp4Player({ src, poster, title }: VideoPlayerProps) {
 }
 
 export default function VideoPlayer({ src, poster, title }: VideoPlayerProps) {
+  if (isYouTubeUrl(src)) return <YouTubeEmbed src={src} title={title} />
   if (isInstagramUrl(src)) return <InstagramEmbed src={src} title={title} />
   return <Mp4Player src={src} poster={poster} title={title} />
 }
