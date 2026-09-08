@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, useMotionTemplate, useReducedMotion } from 'framer-motion'
@@ -25,15 +25,35 @@ export default function HeroZoom() {
   const radius = useTransform(scrollYProgress, [0, 1], [0, 46])
   const ringW = useTransform(scrollYProgress, [0, 0.2, 1], [0, 0, 3])
   const ring = useMotionTemplate`0 0 0 ${ringW}px #141414`
+  const reduce = useReducedMotion()
+
+  // The scroll-zoom needs ~1.7 screens of scroll runway, which feels endless on
+  // a phone. Enable it only on desktop (lg+); on mobile the hero is a single-
+  // screen static card with a soft fade-in, so scrolling past it is instant.
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const sync = () => setIsDesktop(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+  const zoom = isDesktop && !reduce
+
+  // Desktop drives the frame with scroll MotionValues; mobile gets a plain
+  // fade-in (mixing style-scale with animate-scale would conflict, so we split).
+  const cardMotion = zoom
+    ? { style: { scale, borderRadius: radius, boxShadow: ring } }
+    : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const } }
 
   const go = (topic: string) => router.push(`/builder?topic=${encodeURIComponent(topic)}`)
 
   return (
-    <section ref={ref} className="relative h-[168vh] overflow-x-clip" aria-label="Intro">
-      <div className="sticky top-0 h-[100svh] flex items-center justify-center overflow-hidden px-2 sm:px-4">
+    <section ref={ref} className={`relative overflow-x-clip ${zoom ? 'h-[168vh]' : ''}`} aria-label="Intro">
+      <div className={`flex items-center justify-center overflow-hidden px-2 sm:px-4 ${zoom ? 'sticky top-0 h-[100svh]' : 'h-[90svh]'}`}>
         <motion.div
-          style={{ scale, borderRadius: radius, boxShadow: ring }}
-          className="relative w-full h-[90svh] bg-yellow overflow-hidden flex items-center justify-center"
+          {...cardMotion}
+          className={`relative w-full h-[90svh] bg-yellow overflow-hidden flex items-center justify-center ${zoom ? '' : 'rounded-[32px] ring-2 ring-ink'}`}
         >
           <Spotlight />
 
