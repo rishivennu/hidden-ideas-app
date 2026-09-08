@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Fredoka } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/react'
 import TrackVisit from '@/components/TrackVisit'
+import LiveCounter from '@/components/LiveCounter'
 import FollowGate from '@/components/FollowGate'
 import AuthGate from '@/components/AuthGate'
 import IdeaRoulette from '@/components/IdeaRoulette'
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <IdeaRoulette />
         <TrackVisit />
         <Analytics />
+        <LiveCounter />
       </body>
     </html>
   )

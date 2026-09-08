@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Compass, Library, Send, Heart, Film, Wand2 } from 'lucide-react'
 import ScrollProgress from './ScrollProgress'
 import { useSaved } from '@/lib/savedStore'
-import LiveCounter from './LiveCounter'
 
 const NAV = [
   { href: '/library', label: 'Library', icon: Library },
@@ -94,7 +93,6 @@ export default function Header() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-2 lg:ml-1"><LiveCounter />
           <button
             onClick={() => setMenuOpen((v) => !v)}
             className={`lg:hidden rounded-full bg-white border-2 border-ink flex items-center justify-center transition-all ${scrolled ? 'w-9 h-9' : 'w-10 h-10'}`}
@@ -108,7 +106,6 @@ export default function Header() {
                 : <motion.span key="m" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}><Menu className="w-5 h-5" aria-hidden="true" /></motion.span>}
             </AnimatePresence>
           </button>
-          </div>
         </nav>
 
         <AnimatePresence>
