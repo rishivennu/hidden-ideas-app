@@ -99,7 +99,8 @@ function HeroContent({ q, setQ, go }: { q: string; setQ: (v: string) => void; go
       </h1>
 
       <p className="text-base sm:text-lg lg:text-xl font-medium text-ink/80 max-w-xl mx-auto mb-5">
-        Type any business and get a complete, fact-checked, India-ready roadmap — registration, licenses, fees in ₹, suppliers, market and timeline. Powered by Gemini.
+        <span className="sm:hidden">Type any business and get a complete, India-ready roadmap in ₹. Powered by Gemini.</span>
+        <span className="hidden sm:inline">Type any business and get a complete, fact-checked, India-ready roadmap — registration, licenses, fees in ₹, suppliers, market and timeline. Powered by Gemini.</span>
       </p>
 
       <form
@@ -121,7 +122,7 @@ function HeroContent({ q, setQ, go }: { q: string; setQ: (v: string) => void; go
       </form>
 
       {/* example prompt chips */}
-      <div className="flex flex-wrap items-center justify-center gap-2 mb-5 max-w-xl mx-auto">
+      <div className="hidden sm:flex flex-wrap items-center justify-center gap-2 mb-5 max-w-xl mx-auto">
         <span className="text-sm font-semibold text-ink/55">Try:</span>
         {EXAMPLES.map((ex) => (
           <button
@@ -136,16 +137,18 @@ function HeroContent({ q, setQ, go }: { q: string; setQ: (v: string) => void; go
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <MagneticButton>
-          <Link href="/builder" className="btn-primary px-7 py-3.5"><Compass className="w-4 h-4" /> Build a roadmap</Link>
-        </MagneticButton>
+        <span className="hidden sm:block">
+          <MagneticButton>
+            <Link href="/builder" className="btn-primary px-7 py-3.5"><Compass className="w-4 h-4" /> Build a roadmap</Link>
+          </MagneticButton>
+        </span>
         <MagneticButton>
           <Link href="/library" className="btn-secondary px-7 py-3.5"><Library className="w-4 h-4" /> Browse ideas</Link>
         </MagneticButton>
       </div>
 
       {/* compact 3-step mechanic */}
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm font-semibold text-ink/70">
+      <div className="mt-6 hidden sm:flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm font-semibold text-ink/70">
         <span className="inline-flex items-center gap-1.5"><Search className="w-4 h-4" aria-hidden="true" /> Type a business</span>
         <span aria-hidden="true" className="text-ink/40">→</span>
         <span className="inline-flex items-center gap-1.5"><Sparkles className="w-4 h-4" aria-hidden="true" /> Gemini researches</span>
